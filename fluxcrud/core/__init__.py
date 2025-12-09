@@ -6,6 +6,7 @@ from .exceptions import (
     NotFoundError,
     ValidationError,
 )
+from .repository import Repository
 
 __all__ = [
     "BaseCRUD",
@@ -14,4 +15,5 @@ __all__ = [
     "FluxCRUDError",
     "NotFoundError",
     "ValidationError",
+    "Repository",
 ]
