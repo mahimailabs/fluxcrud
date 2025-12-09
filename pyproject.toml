@@ -1,0 +1,66 @@
+[project]
+name = "fluxcrud"
+version = "0.1.0"
+description = "FluxCRUD is a easy to use, fast, and modern CRUD framework for FastAPI."
+authors = [{ name = "Mahimai Raja J", email = "hello@mahimai.dev" }]
+readme = "README.md"
+requires-python = ">=3.9,<4"
+license = "MIT"
+keywords = ["fastapi", "crud", "async", "sqlalchemy", "pydantic", "fluxcrud"]
+classifiers = [
+    "Development Status :: 1 - Planning",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Libraries",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent",
+    "Framework :: FastAPI",
+    "Typing :: Typed",
+]
+dependencies = []
+
+[project.urls]
+Repository = "https://github.com/mahimailabs/fluxcrud"
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.3.0",
+]
+
+[tool.hatch.build.targets.sdist]
+include = ["fluxcrud/", "LICENSE"]
+
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "fluxcrud/_version.py"
+
+[tool.ruff]
+target-version = "py310"
+line-length = 88
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501",  # line too long, handled by black
+    "B008",  # do not perform function calls in argument defaults
+    "C901",  # too complex
+    "W191",  # indentation contains tabs
+]

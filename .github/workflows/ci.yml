@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: main
+  pull_request_review:
+    types: [submitted]
+
+jobs:
+  lint-and-type-check:
+    if: github.event_name == 'push' || (github.event_name == 'pull_request_review' && github.event.review.state == 'approved')
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version:
+          - "3.14"
+          - "3.13"
+          - "3.12"
+          - "3.11"
+          - "3.10"
+          - "3.9"
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
+
+    - name: Install dependencies
+      run: uv sync --all-extras --dev
+
+    - name: Run ruff linting
+      run: uv run ruff check .
+
+    - name: Run ruff formatting check
+      run: uv run ruff format --check .
+
+    - name: Run mypy type checking
+      run: uv run mypy .
