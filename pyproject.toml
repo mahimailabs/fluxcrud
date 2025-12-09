@@ -59,6 +59,7 @@ dev = [
     "aiosqlite>=0.20.0",
     "mypy>=1.0.0",
     "pytest>=8.4.2",
+    "ruff>=0.14.8",
 ]
 
 [tool.hatch.build.targets.sdist]
