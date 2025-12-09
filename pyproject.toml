@@ -4,11 +4,11 @@ version = "0.1.0"
 description = "FluxCRUD is a easy to use, fast, and modern CRUD framework for FastAPI."
 authors = [{ name = "Mahimai Raja J", email = "hello@mahimai.dev" }]
 readme = "README.md"
-requires-python = ">=3.9,<4"
+requires-python = ">=3.10,<4"
 license = "MIT"
 keywords = ["fastapi", "crud", "async", "sqlalchemy", "pydantic", "fluxcrud"]
 classifiers = [
-    "Development Status :: 1 - Planning",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Topic :: Software Development :: Libraries",
     "License :: OSI Approved :: MIT License",
@@ -19,16 +19,46 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Operating System :: OS Independent",
     "Framework :: FastAPI",
+    "Framework :: AsyncIO",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+    "Topic :: Database",
     "Typing :: Typed",
 ]
-dependencies = []
+dependencies = [
+    "fastapi>=0.124.0",
+    "pydantic>=2.12.5",
+    "sqlalchemy[asyncio]>=2.0.44",
+]
 
 [project.urls]
 Repository = "https://github.com/mahimailabs/fluxcrud"
 
+[project.optional-dependencies]
+# Cli
+cli = ["rich>=14.2.0", "typer>=0.20.0"]
+
+# Serializers
+msgpack = ["msgpack>=1.1.2"]
+
+# Database Drivers
+postgresql = ["asyncpg>=0.31.0"]
+mysql = ["aiomysql>=0.3.2"]
+all-drivers = ["aiomysql>=0.3.2", "asyncpg>=0.31.0"]
+
+# Caching Backend
+redis = ["redis[hiredis]>=7.0.1"]
+memcached = ["aiomcache>=0.8.2"]
+all-cache = ["aiomcache>=0.8.2", "redis[hiredis]>=7.0.1"]
+
+
 [dependency-groups]
 dev = [
     "pre-commit>=4.3.0",
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "aiosqlite>=0.20.0",
+    "mypy>=1.0.0",
+    "pytest>=8.4.2",
 ]
 
 [tool.hatch.build.targets.sdist]
