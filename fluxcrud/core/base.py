@@ -1,12 +1,20 @@
 from typing import Generic, TypeVar
 
+from fluxcrud.operations import CreateMixin, DeleteMixin, ReadMixin, UpdateMixin
 from fluxcrud.types import ModelProtocol, SchemaProtocol
 
 ModelT = TypeVar("ModelT", bound=ModelProtocol)
 SchemaT = TypeVar("SchemaT", bound=SchemaProtocol)
 
 
-class BaseCRUD(Generic[ModelT, SchemaT]):
+class BaseCRUD(
+    CreateMixin[ModelT, SchemaT],
+    ReadMixin[ModelT, SchemaT],
+    UpdateMixin[ModelT, SchemaT],
+    DeleteMixin[ModelT, SchemaT],
+    Generic[ModelT, SchemaT],
+):
     """Base class for CRUD operations."""
 
-    pass
+    def __init__(self, model: type[ModelT]):
+        self.model = model
