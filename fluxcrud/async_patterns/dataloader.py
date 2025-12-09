@@ -63,7 +63,7 @@ class DataLoader(Generic[K, V]):
             results = await self.batch_load_fn(keys)
 
             # Cache and resolve futures
-            for key, result, future in zip(keys, results, futures):
+            for key, result, future in zip(keys, results, futures, strict=True):
                 if self.cache:
                     self._cache[key] = result
                 future.set_result(result)
