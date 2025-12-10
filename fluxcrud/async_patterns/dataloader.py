@@ -25,6 +25,15 @@ class DataLoader(Generic[K, V]):
         self._queue: list[tuple[K, asyncio.Future[V]]] = []
         self._dispatched = False
 
+    def clear(self, key: K) -> None:
+        """Clear a key from cache."""
+        if key in self._cache:
+            del self._cache[key]
+
+    def clear_all(self) -> None:
+        """Clear entire cache."""
+        self._cache.clear()
+
     async def load(self, key: K) -> V:
         """Load a single item, batched with other loads in same tick."""
         if self.cache and key in self._cache:
