@@ -16,3 +16,13 @@ class SchemaProtocol(Protocol):
     """Protocol for Pydantic schemas."""
 
     def model_dump(self, *args: Any, **kwargs: Any) -> dict[str, Any]: ...
+
+    @classmethod
+    def model_validate(
+        cls,
+        obj: Any,
+        *,
+        strict: bool | None = None,
+        from_attributes: bool | None = None,
+        context: dict[str, Any] | None = None,
+    ) -> Any: ...
