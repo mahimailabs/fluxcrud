@@ -214,3 +214,6 @@ uv.lock
 
 # sqlite database
 *.db
+
+# gh actions secrets
+.secrets
