@@ -20,31 +20,37 @@ class Flux:
     Automates database setup, lifecycle management, and router registration.
     """
 
-    def __init__(self, app: FastAPI, db_url: str, base: type[DeclarativeBase]):
+    def __init__(
+        self, app: FastAPI, db_url: str, base: type[DeclarativeBase] | None = None
+    ):
         self.app = app
         self.db_url = db_url
         self.base = base
         self._setup_lifecycle()
 
+    def attach_base(self, base: type[DeclarativeBase]) -> None:
+        """Attach the declarative base model to Flux."""
+        self.base = base
+
     def _setup_lifecycle(self) -> None:
         """Attach database lifecycle events to the FastAPI app."""
+        original_lifespan = self.app.router.lifespan_context
 
         @asynccontextmanager
         async def lifespan(app: FastAPI):
-            # Startup
             db.init(self.db_url)
             assert db.engine is not None
-            async with db.engine.begin() as conn:
-                await conn.run_sync(self.base.metadata.create_all)
-            yield
-            # Shutdown (if needed)
+            if self.base:
+                async with db.engine.begin() as conn:
+                    await conn.run_sync(self.base.metadata.create_all)
 
-        # If app already has a lifespan, we might need to wrap it.
-        # For simplicity, we assume Flux controls the lifespan or users use Flux's lifespan.
-        # But FastAPI only accepts one lifespan.
-        # A better approach: Flux provides the lifespan, user passes it to FastAPI.
-        # Or Flux wraps the app's existing lifespan?
-        # Let's override it for now, assuming Flux is the main driver.
+            if original_lifespan:
+                async with original_lifespan(app) as state:
+                    yield state
+            else:
+                yield
+            await db.close()
+
         self.app.router.lifespan_context = lifespan
 
     def register(
