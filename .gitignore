@@ -209,9 +209,6 @@ __marimo__/
 # Generated version file
 fluxcrud/_version.py
 
-# uv lock file
-uv.lock
-
 # sqlite database
 *.db
 
