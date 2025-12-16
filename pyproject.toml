@@ -46,9 +46,9 @@ mysql = ["aiomysql>=0.3.2"]
 all-drivers = ["aiomysql>=0.3.2", "asyncpg>=0.31.0"]
 
 # Caching Backend
-redis = ["redis[hiredis]>=7.0.1"]
+redis = ["redis[hiredis]>=7.1.0"]
 memcached = ["aiomcache>=0.8.2"]
-all-cache = ["aiomcache>=0.8.2", "redis[hiredis]>=7.0.1"]
+all-cache = ["aiomcache>=0.8.2", "redis[hiredis]>=7.1.0"]
 
 
 [dependency-groups]
