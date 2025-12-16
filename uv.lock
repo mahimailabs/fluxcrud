@@ -337,7 +337,6 @@ wheels = [
 
 [[package]]
 name = "fluxcrud"
-version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "fastapi" },
@@ -404,7 +403,7 @@ requires-dist = [
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.44" },
     { name = "typer", marker = "extra == 'cli'", specifier = ">=0.20.0" },
 ]
-provides-extras = ["cli", "msgpack", "postgresql", "mysql", "all-drivers", "redis", "memcached", "all-cache"]
+provides-extras = ["all-cache", "all-drivers", "cli", "memcached", "msgpack", "mysql", "postgresql", "redis"]
 
 [package.metadata.requires-dev]
 dev = [
