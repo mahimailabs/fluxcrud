@@ -19,11 +19,36 @@ class Database:
         self.session_factory: async_sessionmaker[AsyncSession] | None = None
         self._kwargs = kwargs
 
-    def init(self, url: str, **kwargs) -> None:
-        """Initialize the database connection."""
+    def init(
+        self,
+        url: str,
+        pool_size: int = 20,
+        max_overflow: int = 10,
+        pool_recycle: int = 3600,
+        pool_timeout: int = 30,
+        **kwargs,
+    ) -> None:
+        """
+        Initialize the database connection.
+
+        Args:
+            url: The database connection URL.
+            pool_size: The number of connections to keep open inside the connection pool.
+            max_overflow: The number of connections to allow in overflow.
+            pool_recycle: Recycle connections after the given number of seconds.
+            pool_timeout: Number of seconds to wait before giving up on getting a connection from the pool.
+            **kwargs: Additional arguments to pass to `create_async_engine`.
+        """
         self.url = url
         self._kwargs.update(kwargs)
-        self.engine = create_async_engine(self.url, **self._kwargs)
+        self.engine = create_async_engine(
+            self.url,
+            pool_size=pool_size,
+            max_overflow=max_overflow,
+            pool_recycle=pool_recycle,
+            pool_timeout=pool_timeout,
+            **self._kwargs,
+        )
         self.session_factory = async_sessionmaker(
             bind=self.engine,
             class_=AsyncSession,
