@@ -1,12 +1,12 @@
 [project]
 name = "fluxcrud"
-version = "0.1.0"
+dynamic = ["version"]
 description = "FluxCRUD is a easy to use, fast, and modern CRUD framework for FastAPI."
 authors = [{ name = "Mahimai Raja J", email = "hello@mahimai.dev" }]
 readme = "README.md"
 requires-python = ">=3.10,<4"
 license = "MIT"
-keywords = ["fastapi", "crud", "async", "sqlalchemy", "pydantic", "fluxcrud"]
+keywords = ["fluxcrud", "crud", "async", "sqlalchemy", "pydantic", "fastapi"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
