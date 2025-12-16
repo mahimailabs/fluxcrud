@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
+from sqlalchemy.pool import NullPool, StaticPool
 
 from fluxcrud.core import ConfigurationError
 
@@ -41,12 +42,21 @@ class Database:
         """
         self.url = url
         self._kwargs.update(kwargs)
+
+        pool_class = self._kwargs.get("poolclass")
+        pool_args = {}
+
+        if not (pool_class and (pool_class == StaticPool or pool_class == NullPool)):
+            pool_args = {
+                "pool_size": pool_size,
+                "max_overflow": max_overflow,
+                "pool_recycle": pool_recycle,
+                "pool_timeout": pool_timeout,
+            }
+
         self.engine = create_async_engine(
             self.url,
-            pool_size=pool_size,
-            max_overflow=max_overflow,
-            pool_recycle=pool_recycle,
-            pool_timeout=pool_timeout,
+            **pool_args,
             **self._kwargs,
         )
         self.session_factory = async_sessionmaker(
