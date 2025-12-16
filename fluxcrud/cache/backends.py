@@ -12,7 +12,7 @@ except ImportError:
 class InMemoryCache(CacheProtocol):
     """Simple in-memory cache backend using a dictionary."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._cache: dict[str, tuple[Any, float | None]] = {}
 
     async def get(self, key: str) -> Any | None:

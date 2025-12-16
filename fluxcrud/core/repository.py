@@ -1,5 +1,5 @@
 import pickle
-from typing import Any, Generic, TypeVar
+from typing import Any, Generic, TypeVar, cast
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -51,7 +51,7 @@ class Repository(BaseCRUD[ModelT, SchemaT], Generic[ModelT, SchemaT]):
             key = self._get_cache_key(id)
             cached_bytes = await self.cache_manager.get(key)
             if cached_bytes:
-                return pickle.loads(cached_bytes)
+                return cast(ModelT, pickle.loads(cached_bytes))
 
         # Cache miss or no cache:
         obj = await self.id_loader.load(id)
