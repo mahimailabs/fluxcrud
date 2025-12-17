@@ -4,7 +4,7 @@ from typing import Any, Generic, TypeVar, cast
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from fluxcrud.async_patterns import DataLoader
+from fluxcrud.async_patterns import Batcher, DataLoader
 from fluxcrud.cache.manager import CacheManager
 from fluxcrud.core.base import BaseCRUD
 from fluxcrud.types import ModelProtocol, SchemaProtocol
@@ -65,9 +65,41 @@ class Repository(BaseCRUD[ModelT, SchemaT], Generic[ModelT, SchemaT]):
 
     async def get_many_by_ids(self, ids: list[Any]) -> list[ModelT | None]:
         """Get multiple by IDs."""
-        # TODO: Implement multi-get cache check
-        # For now just pass through DataLoader which batches DB hits.
-        return await self.id_loader.load_many(ids)
+        if not self.cache_manager:
+            return await self.id_loader.load_many(ids)
+
+        keys = [self._get_cache_key(id) for id in ids]
+        cached_data = await self.cache_manager.get_many(keys)
+
+        results: list[ModelT | None] = []
+        missing_ids = []
+        missing_indices = []
+
+        for i, (id, key) in enumerate(zip(ids, keys, strict=True)):
+            val = cached_data.get(key)
+            if val:
+                results.append(cast(ModelT, pickle.loads(val)))
+            else:
+                results.append(None)
+                missing_ids.append(id)
+                missing_indices.append(i)
+
+        if not missing_ids:
+            return results
+
+        db_objects = await self.id_loader.load_many(missing_ids)
+
+        cache_update = {}
+        for i, obj in zip(missing_indices, db_objects, strict=True):
+            results[i] = obj
+            if obj:
+                key = self._get_cache_key(obj.id)
+                cache_update[key] = pickle.dumps(obj)
+
+        if cache_update:
+            await self.cache_manager.set_many(cache_update)
+
+        return results
 
     async def create(
         self, session: AsyncSession, obj_in: SchemaT | dict[str, Any]
@@ -101,3 +133,42 @@ class Repository(BaseCRUD[ModelT, SchemaT], Generic[ModelT, SchemaT]):
 
         self.id_loader.clear(obj.id)
         return obj
+
+    async def create_many(
+        self, session: AsyncSession, objs_in: list[SchemaT | dict[str, Any]]
+    ) -> list[ModelT]:
+        """Create multiple records efficiently."""
+        data_list = []
+        for obj_in in objs_in:
+            if isinstance(obj_in, dict):
+                data_list.append(obj_in)
+            else:
+                data_list.append(obj_in.model_dump())
+
+        instances = [self.model(**data) for data in data_list]
+        session.add_all(instances)
+        await session.commit()
+
+        if self.cache_manager:
+            for obj in instances:
+                if hasattr(obj, "id") and obj.id:
+                    key = self._get_cache_key(obj.id)
+                    await self.cache_manager.set(key, pickle.dumps(obj))
+
+        return instances
+
+    def batch_writer(
+        self, session: AsyncSession, batch_size: int = 100, flush_interval: float = 0.0
+    ) -> Batcher[SchemaT | dict[str, Any], None]:
+        """
+        Get a Batcher instance for streaming inserts.
+
+        Usage:
+            async with repo.batch_writer(session) as writer:
+                await writer.add(item)
+        """
+
+        async def _processor(items: list[SchemaT | dict[str, Any]]) -> None:
+            await self.create_many(session, items)
+
+        return Batcher(_processor, batch_size=batch_size, flush_interval=flush_interval)
