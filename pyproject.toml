@@ -31,6 +31,7 @@ dependencies = [
 ]
 
 [project.urls]
+Homepage = "https://fluxcrud.mahimai.dev"
 Repository = "https://github.com/mahimailabs/fluxcrud"
 
 [project.optional-dependencies]
