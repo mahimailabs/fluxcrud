@@ -94,3 +94,82 @@ class RedisCache(CacheProtocol):
 
     async def clear(self) -> None:
         await self.redis.flushdb()
+
+
+try:
+    import aiomcache
+except ImportError:
+    aiomcache = None  # type: ignore
+
+
+class MemcachedCache(CacheProtocol):
+    """Memcached cache backend."""
+
+    def __init__(self, memcached_url: str):
+        if aiomcache is None:
+            raise ImportError(
+                "aiomcache is required for MemcachedCache. Install with 'pip install aiomcache'"
+            )
+
+        if "://" in memcached_url:
+            memcached_url = memcached_url.split("://")[1]
+
+        parts = memcached_url.split(":")
+        host = parts[0]
+        port = int(parts[1]) if len(parts) > 1 else 11211
+
+        self.host = host
+        self.port = port
+        self.client = aiomcache.Client(host, port)
+
+    async def get(self, key: str) -> Any | None:
+        value = await self.client.get(key.encode())
+        return value
+
+    async def get_many(self, keys: list[str]) -> dict[str, Any]:
+        if not keys:
+            return {}
+        encoded_keys = [k.encode() for k in keys]
+        values = await self.client.multi_get(*encoded_keys)
+        return {k: v for k, v in zip(keys, values, strict=True) if v is not None}
+
+    async def set(self, key: str, value: Any, ttl: int | None = None) -> None:
+        if not isinstance(value, bytes):
+            if isinstance(value, str):
+                value = value.encode()
+            elif not isinstance(value, (bytes, bytearray)):
+                value = str(value).encode()
+
+        await self.client.set(key.encode(), value, exptime=ttl or 0)
+
+    async def set_many(self, mapping: dict[str, Any], ttl: int | None = None) -> None:
+        import asyncio
+
+        tasks = []
+        for key, value in mapping.items():
+            tasks.append(self.set(key, value, ttl))
+
+        if tasks:
+            await asyncio.gather(*tasks)
+
+    async def delete(self, key: str) -> None:
+        await self.client.delete(key.encode())
+
+    async def clear(self) -> None:
+        import asyncio
+
+        try:
+            reader, writer = await asyncio.open_connection(self.host, self.port)
+            writer.write(b"flush_all\r\n")
+            await writer.drain()
+
+            response = await reader.readline()
+
+            writer.close()
+            await writer.wait_closed()
+
+            if response.strip() != b"OK":
+                pass
+
+        except Exception:
+            raise

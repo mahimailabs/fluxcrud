@@ -7,12 +7,23 @@ from fluxcrud.types.protocols import CacheProtocol
 class CacheManager:
     """Manages the cache implementation."""
 
-    def __init__(self, backend: str = "memory", redis_url: str | None = None):
+    def __init__(
+        self,
+        backend: str = "memory",
+        redis_url: str | None = None,
+        memcached_url: str | None = None,
+    ):
         self.backend: CacheProtocol
         if backend == "redis":
             if not redis_url:
                 raise ValueError("redis_url is required for redis backend")
             self.backend = RedisCache(redis_url)
+        elif backend == "memcached":
+            from fluxcrud.cache.backends import MemcachedCache
+
+            if not memcached_url:
+                raise ValueError("memcached_url is required for memcached backend")
+            self.backend = MemcachedCache(memcached_url)
         else:
             self.backend = InMemoryCache()
 
