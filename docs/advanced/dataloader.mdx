@@ -1,0 +1,31 @@
+---
+title: 'DataLoader (N+1)'
+description: 'Solving the N+1 select problem'
+---
+
+## The Problem
+
+Fetching a list of posts and then fetching the author for each post in a loop causes the "N+1 Problem":
+
+```python
+posts = await post_repo.get_multi(session) # 1 Query
+for post in posts:
+    # N Queries!
+    author = await user_repo.get(session, post.user_id)
+```
+
+## The Solution
+
+FluxCRUD integrates the **DataLoader** pattern to batch these requests automatically.
+
+### Usage
+
+Use `repo.get_many_by_ids()`:
+
+```python
+user_ids = [p.user_id for p in posts]
+# 1 Query (SELECT ... WHERE id IN (...))
+authors = await user_repo.get_many_by_ids(user_ids)
+```
+
+Internally, FluxCRUD collects all these IDs and fires a single optimal SQL query.

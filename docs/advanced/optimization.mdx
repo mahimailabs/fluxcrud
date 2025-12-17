@@ -1,0 +1,28 @@
+---
+title: 'Optimization'
+description: 'Analyzing and improving slow queries'
+---
+
+## Query Analyzer
+
+FluxCRUD includes a `QueryAnalyzer` to help you spot performance bottlenecks such as N+1 problems or excessive row scans.
+
+```python
+from fluxcrud.query import QueryAnalyzer
+
+async with QueryAnalyzer() as analyzer:
+    users = await repo.get_multi(session)
+
+print(f"Total Queries: {analyzer.count}")
+```
+
+## SQL Hints
+
+Sometimes you need to force a specific index or optimization hint to the database engine.
+
+```python
+from fluxcrud.query import with_hints
+
+# Apply hints
+query = with_hints(query, "MAX_EXECUTION_TIME(1000)")
+```

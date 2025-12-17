@@ -1,0 +1,56 @@
+---
+title: 'Caching'
+description: 'High-performance read/write caching'
+---
+
+## Overview
+
+FluxCRUD provides a unified `CacheManager` that works seamlessly with the `Repository`. It supports:
+
+*   **In-Memory**: Ideal for testing and local dev.
+*   **Redis**: Production-grade distributed caching.
+*   **Memcached**: Lightweight alternative.
+
+## Usage
+
+### Configuration
+
+Pass the `CacheManager` to your `Repository` or `Flux` instance.
+
+```python
+from fluxcrud import Flux
+
+# Redis
+flux = Flux(
+    app,
+    db_url="...",
+    cache_backend="redis",
+    cache_url="redis://localhost:6379"
+)
+
+# Memcached
+flux = Flux(
+    app,
+    db_url="...",
+    cache_backend="memcached",
+    cache_url="localhost:11211"
+)
+```
+
+### Automatic Caching
+
+Once configured, the `Repository` handles caching for you:
+
+1.  **Read-Through**: `get(id)` checks cache first. If hit, returns instantly. If miss, fetches from DB and sets cache.
+2.  **Write-Through**: `create` and `update` write to DB *and* cache.
+3.  **Invalidation**: `delete` removes the item from cache.
+
+### Bulk Operations
+
+The `Repository` is smart enough to handle bulk fetches efficiently:
+
+```python
+# Fetches IDs [1, 2, 3]
+# If 1 is in cache, it only queries DB for 2 and 3.
+users = await repo.get_many_by_ids([1, 2, 3])
+```

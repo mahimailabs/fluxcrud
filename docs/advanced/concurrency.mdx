@@ -1,0 +1,35 @@
+---
+title: 'Concurrency'
+description: 'Scaling throughput with Batcher and ParallelExecutor'
+---
+
+## The Batcher
+
+When inserting thousands of records, individual `await repo.create()` calls are slow due to network latency.
+
+The `Batcher` queues items and flushes them in chunks, reducing network round-trips drastically.
+
+```python
+from fluxcrud.async_patterns import Batcher
+
+# Usage via context manager on Repository
+async with repo.batch_writer(session, batch_size=100) as writer:
+    for i in range(5000):
+        # Adds to buffer, auto-flushes at 100
+        await writer.add({"name": f"Item {i}"})
+```
+
+## ParallelExecutor
+
+Processing many independent tasks (like calling external APIs or multiple distinct DB selects) sequentially is inefficient.
+
+`ParallelExecutor` runs them concurrently but with a **limit** (Semaphore) to avoid crashing your DB or exhausting connections.
+
+```python
+from fluxcrud.async_patterns import ParallelExecutor
+
+tasks = [lambda: api.fetch_data(i) for i in ids]
+
+# Run at most 50 at once
+results = await ParallelExecutor.gather_limited(limit=50, tasks=tasks)
+```

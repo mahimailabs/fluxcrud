@@ -1,0 +1,77 @@
+---
+title: 'Quickstart'
+description: 'Start building with FluxCRUD in under 5 minutes'
+---
+
+## Setup
+
+<Steps>
+  <Step title="Install Library">
+    Install FluxCRUD and its dependencies.
+
+    ```bash
+    pip install fluxcrud
+    ```
+
+    *Optional: Install `uvicorn` for running the server.*
+    ```bash
+    pip install uvicorn
+    ```
+  </Step>
+  <Step title="Create App">
+    Create a file named `main.py`:
+
+    ```python
+    from typing import Optional
+    from fastapi import FastAPI
+    from fluxcrud import Flux, Base, Schema
+    from sqlalchemy.orm import Mapped, mapped_column
+
+    # 1. Define Model
+    class Task(Base):
+        __tablename__ = "tasks"
+        id: Mapped[int] = mapped_column(primary_key=True)
+        title: Mapped[str]
+        done: Mapped[bool] = mapped_column(default=False)
+
+    # 2. Define Schema
+    class TaskSchema(Schema):
+        title: str
+        done: bool
+
+    class TaskCreate(Schema):
+        title: str
+
+    class TaskUpdate(Schema):
+        title: Optional[str] = None
+        done: Optional[bool] = None
+
+    # 3. Initialize Flux
+    app = FastAPI()
+    flux = Flux(app, db_url="sqlite+aiosqlite:///app.db")
+    flux.attach_base(Base)
+
+    # 4. Register Resource
+    flux.register(
+        model=Task,
+        schema=TaskSchema,
+        create_schema=TaskCreate,
+        update_schema=TaskUpdate,
+        prefix="/tasks",
+        tags=["Tasks"]
+    )
+    ```
+  </Step>
+  <Step title="Run Server">
+    Run the application:
+
+    ```bash
+    uvicorn main:app --reload
+    ```
+  </Step>
+  <Step title="Test API">
+    Open your browser to `http://127.0.0.1:8000/docs`.
+
+    You will see a fully functional CRUD API for Tasks!
+  </Step>
+</Steps>

@@ -1,0 +1,28 @@
+---
+title: 'Connection Pooling'
+description: 'Manage database connections efficiently'
+---
+
+## Overview
+
+Database connections are expensive. FluxCRUD uses **SQLAlchemy's** connection pooling under the hood but exposes simple configuration options to tune it for high-concurrency workloads.
+
+## Configuration
+
+You can configure pooling via `Flux` or `Database` init:
+
+```python
+flux = Flux(
+    app,
+    db_url="postgresql+asyncpg://user:pass@localhost/db",
+    pool_size=20,       # Base number of connections
+    max_overflow=40,    # Max extra connections during spikes
+    pool_timeout=30     # Max wait time for a connection
+)
+```
+
+## Best Practices
+
+*   **Production**: Always use a real pool (not `NullPool`) for PostgreSQL/MySQL.
+*   **Serverless**: If using AWS Lambda / Azure Functions, consider `NullPool` if you have an external proxy (like PGBouncer) or keep `pool_size` small.
+*   **SQLite**: File-based SQLite works best with `StaticPool` (handled automatically for in-memory) or strictly serialized access. FluxCRUD handles safe defaults.
