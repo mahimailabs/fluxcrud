@@ -28,6 +28,14 @@ class CacheManager:
         """
         await self.backend.set(key, value, ttl)
 
+    async def get_many(self, keys: list[str]) -> dict[str, Any]:
+        """Get multiple values from the cache."""
+        return await self.backend.get_many(keys)
+
+    async def set_many(self, mapping: dict[str, Any], ttl: int | None = None) -> None:
+        """Set multiple values in the cache."""
+        await self.backend.set_many(mapping, ttl)
+
     async def delete(self, key: str) -> None:
         await self.backend.delete(key)
 

@@ -30,6 +30,19 @@ class InMemoryCache(CacheProtocol):
         expiry = time.time() + ttl if ttl else None
         self._cache[key] = (value, expiry)
 
+    async def get_many(self, keys: list[str]) -> dict[str, Any]:
+        result = {}
+        for key in keys:
+            val = await self.get(key)
+            if val is not None:
+                result[key] = val
+        return result
+
+    async def set_many(self, mapping: dict[str, Any], ttl: int | None = None) -> None:
+        expiry = time.time() + ttl if ttl else None
+        for key, value in mapping.items():
+            self._cache[key] = (value, expiry)
+
     async def delete(self, key: str) -> None:
         if key in self._cache:
             del self._cache[key]
@@ -53,11 +66,28 @@ class RedisCache(CacheProtocol):
     async def get(self, key: str) -> Any | None:
         return await self.redis.get(key)
 
+    async def get_many(self, keys: list[str]) -> dict[str, Any]:
+        if not keys:
+            return {}
+        values = await self.redis.mget(keys)
+        return {k: v for k, v in zip(keys, values, strict=True) if v is not None}
+
     async def set(self, key: str, value: Any, ttl: int | None = None) -> None:
         if ttl:
             await self.redis.setex(key, ttl, value)
         else:
             await self.redis.set(key, value)
+
+    async def set_many(self, mapping: dict[str, Any], ttl: int | None = None) -> None:
+        if not mapping:
+            return
+        if ttl:
+            async with self.redis.pipeline() as pipe:
+                for key, value in mapping.items():
+                    pipe.setex(key, ttl, value)
+                await pipe.execute()
+        else:
+            await self.redis.mset(mapping)
 
     async def delete(self, key: str) -> None:
         await self.redis.delete(key)

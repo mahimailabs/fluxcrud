@@ -40,6 +40,14 @@ class CacheProtocol(Protocol):
         """Set a value in the cache."""
         ...
 
+    async def get_many(self, keys: list[str]) -> dict[str, Any]:
+        """Get multiple values from the cache."""
+        ...
+
+    async def set_many(self, mapping: dict[str, Any], ttl: int | None = None) -> None:
+        """Set multiple values in the cache."""
+        ...
+
     async def delete(self, key: str) -> None:
         """Delete a value from the cache."""
         ...
