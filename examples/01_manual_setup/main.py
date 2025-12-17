@@ -1,45 +1,19 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
-from pydantic import BaseModel, ConfigDict
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
+from examples.helper import (
+    Base,
+    Task,
+    TaskCreate,
+    TaskSchema,
+    TaskUpdate,
+)
 from fluxcrud.database import db
 from fluxcrud.web.middleware import ValidationMiddleware
 from fluxcrud.web.router import CRUDRouter
 
 
-# 1. Define Model
-class Base(DeclarativeBase):
-    pass
-
-
-class Task(Base):
-    __tablename__ = "tasks"
-    id: Mapped[int] = mapped_column(primary_key=True)
-    title: Mapped[str]
-    completed: Mapped[bool] = mapped_column(default=False)
-
-
-# 2. Define Schemas
-class TaskSchema(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-    id: int
-    title: str
-    completed: bool
-
-
-class TaskCreate(BaseModel):
-    title: str
-    completed: bool = False
-
-
-class TaskUpdate(BaseModel):
-    title: str | None = None
-    completed: bool | None = None
-
-
-# 3. Setup Lifecycle
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     db.init("sqlite+aiosqlite:///tasks.db")
@@ -49,12 +23,10 @@ async def lifespan(app: FastAPI):
     await db.close()
 
 
-# 4. Create App
 app = FastAPI(lifespan=lifespan)
 app.add_middleware(ValidationMiddleware)
 
 
-# 5. Create Router
 router = CRUDRouter(
     model=Task,
     schema=TaskSchema,
