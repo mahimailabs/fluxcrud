@@ -58,3 +58,19 @@ async def test_redis_backend_import_error():
             val = await cache.get("k")
             assert val == "val"
             mock_client.get.assert_called_with("k")
+
+
+@pytest.mark.asyncio
+async def test_cache_bulk_ops():
+    cache = InMemoryCache()
+    await cache.set_many({"k1": "v1", "k2": "v2"})
+
+    results = await cache.get_many(["k1", "k2", "k3"])
+    assert results == {"k1": "v1", "k2": "v2"}
+
+    await cache.set_many({"k3": "v3"}, ttl=1)
+    results = await cache.get_many(["k1", "k3"])
+    assert results == {"k1": "v1", "k3": "v3"}
+
+    await cache.clear()
+    assert await cache.get_many(["k1"]) == {}
