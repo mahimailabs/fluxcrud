@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -74,3 +74,68 @@ async def test_cache_bulk_ops():
 
     await cache.clear()
     assert await cache.get_many(["k1"]) == {}
+
+
+@pytest.mark.asyncio
+async def test_memcached_backend_initialization():
+    with patch("fluxcrud.cache.backends.aiomcache", None):
+        with pytest.raises(ImportError, match="aiomcache is required"):
+            from fluxcrud.cache.backends import MemcachedCache
+
+            MemcachedCache("memcached://localhost")
+
+    with patch("fluxcrud.cache.backends.aiomcache") as MockMcache:
+        from fluxcrud.cache.backends import MemcachedCache
+
+        MemcachedCache("memcached://localhost:11211")
+        MockMcache.Client.assert_called_with("localhost", 11211)
+
+        MemcachedCache("localhost")
+        MockMcache.Client.assert_called_with("localhost", 11211)
+
+
+@pytest.mark.asyncio
+async def test_memcached_operations():
+    with patch("fluxcrud.cache.backends.aiomcache") as MockMcache:
+        mock_client = AsyncMock()
+
+        mock_client.get.return_value = b"value"
+        mock_client.multi_get.return_value = [b"v1", b"v2"]
+
+        MockMcache.Client.return_value = mock_client
+
+        from fluxcrud.cache.backends import MemcachedCache
+
+        cache = MemcachedCache("localhost")
+
+        # Get
+        val = await cache.get("key")
+        assert val == b"value"
+        mock_client.get.assert_called_with(b"key")
+
+        # Set
+        await cache.set("key", b"val", ttl=60)
+        mock_client.set.assert_called_with(b"key", b"val", exptime=60)
+
+        # Get Many
+        res = await cache.get_many(["k1", "k2"])
+        assert res == {"k1": b"v1", "k2": b"v2"}
+        mock_client.multi_get.assert_called_with(b"k1", b"k2")
+
+        await cache.delete("d")
+        mock_client.delete.assert_called_with(b"d")
+
+        with patch("asyncio.open_connection") as mock_open:
+            mock_reader = AsyncMock()
+            mock_writer = AsyncMock()
+
+            mock_writer.write = MagicMock()
+            mock_writer.close = MagicMock()
+
+            mock_open.return_value = (mock_reader, mock_writer)
+            mock_reader.readline.return_value = b"OK\r\n"
+
+            await cache.clear()
+
+            mock_writer.write.assert_called_with(b"flush_all\r\n")
+            mock_writer.close.assert_called()
