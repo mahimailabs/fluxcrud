@@ -38,19 +38,18 @@ class CRUDItem(BaseCRUD[Item, ItemCreate]):
     pass
 
 
-crud_item = CRUDItem(Item)
-
-
 @app.post("/items", response_model=ItemResponse)
 async def create_item(item: ItemCreate):
     async for session in db.get_session():
-        return await crud_item.create(session, item)
+        crud_item = CRUDItem(Item, session=session)
+        return await crud_item.create(item)
 
 
 @app.get("/items/{item_id}", response_model=ItemResponse)
 async def get_item(item_id: int):
     async for session in db.get_session():
-        item = await crud_item.get(session, item_id)
+        crud_item = CRUDItem(Item, session=session)
+        item = await crud_item.get(item_id)
         if not item:
             raise Exception("Item not found")
         return item

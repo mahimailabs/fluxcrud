@@ -42,46 +42,46 @@ async def create_tables(db_engine):
 
 
 @pytest_asyncio.fixture
-async def crud_user():
-    return CRUDUser(User)
+async def crud_user(session):
+    return CRUDUser(User, session=session)
 
 
 @pytest.mark.asyncio
-async def test_create_user(session, crud_user):
+async def test_create_user(crud_user):
     user_in = UserCreate(name="Alice", email="alice@example.com")
-    user = await crud_user.create(session, user_in)
+    user = await crud_user.create(user_in)
     assert user.name == "Alice"
     assert user.email == "alice@example.com"
     assert user.id is not None
 
 
 @pytest.mark.asyncio
-async def test_get_user(session, crud_user):
+async def test_get_user(crud_user):
     user_in = UserCreate(name="Bob", email="bob@example.com")
-    created_user = await crud_user.create(session, user_in)
+    created_user = await crud_user.create(user_in)
 
-    fetched_user = await crud_user.get(session, created_user.id)
+    fetched_user = await crud_user.get(created_user.id)
     assert fetched_user is not None
     assert fetched_user.id == created_user.id
     assert fetched_user.name == "Bob"
 
 
 @pytest.mark.asyncio
-async def test_update_user(session, crud_user):
+async def test_update_user(crud_user):
     user_in = UserCreate(name="Charlie", email="charlie@example.com")
-    user = await crud_user.create(session, user_in)
+    user = await crud_user.create(user_in)
 
     update_in = UserUpdate(name="Charles")
-    updated_user = await crud_user.update(session, user, update_in)
+    updated_user = await crud_user.update(user, update_in)
     assert updated_user.name == "Charles"
     assert updated_user.email == "charlie@example.com"
 
 
 @pytest.mark.asyncio
-async def test_delete_user(session, crud_user):
+async def test_delete_user(crud_user):
     user_in = UserCreate(name="David", email="david@example.com")
-    user = await crud_user.create(session, user_in)
+    user = await crud_user.create(user_in)
 
-    await crud_user.delete(session, user)
-    fetched_user = await crud_user.get(session, user.id)
+    await crud_user.delete(user)
+    fetched_user = await crud_user.get(user.id)
     assert fetched_user is None
