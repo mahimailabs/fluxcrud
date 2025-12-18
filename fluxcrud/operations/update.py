@@ -11,9 +11,9 @@ SchemaT = TypeVar("SchemaT", bound=SchemaProtocol)
 class UpdateMixin(Generic[ModelT, SchemaT]):
     """Update operation mixin."""
 
-    async def update(
-        self, session: AsyncSession, db_obj: ModelT, obj_in: SchemaT | dict[str, Any]
-    ) -> ModelT:
+    session: AsyncSession
+
+    async def update(self, db_obj: ModelT, obj_in: SchemaT | dict[str, Any]) -> ModelT:
         """Update a record."""
         if isinstance(obj_in, dict):
             update_data = obj_in
@@ -23,7 +23,7 @@ class UpdateMixin(Generic[ModelT, SchemaT]):
         for field, value in update_data.items():
             setattr(db_obj, field, value)
 
-        session.add(db_obj)
-        await session.commit()
-        await session.refresh(db_obj)
+        self.session.add(db_obj)
+        await self.session.commit()
+        await self.session.refresh(db_obj)
         return db_obj

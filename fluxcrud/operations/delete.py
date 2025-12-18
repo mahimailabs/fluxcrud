@@ -11,8 +11,10 @@ SchemaT = TypeVar("SchemaT", bound=SchemaProtocol)
 class DeleteMixin(Generic[ModelT, SchemaT]):
     """Delete operation mixin."""
 
-    async def delete(self, session: AsyncSession, db_obj: ModelT) -> ModelT:
+    session: AsyncSession
+
+    async def delete(self, db_obj: ModelT) -> ModelT:
         """Delete a record."""
-        await session.delete(db_obj)
-        await session.commit()
+        await self.session.delete(db_obj)
+        await self.session.commit()
         return db_obj

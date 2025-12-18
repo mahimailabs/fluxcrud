@@ -13,6 +13,8 @@ class ReadMixin(Generic[ModelT, SchemaT]):
 
     model: type[ModelT]
 
-    async def get(self, session: AsyncSession, id: Any) -> ModelT | None:
+    session: AsyncSession
+
+    async def get(self, id: Any) -> ModelT | None:
         """Get a record by ID."""
-        return await session.get(self.model, id)
+        return await self.session.get(self.model, id)

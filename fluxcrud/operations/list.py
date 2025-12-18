@@ -15,10 +15,10 @@ class ListMixin(Generic[ModelT, SchemaT]):
 
     model: type[ModelT]
 
-    async def get_multi(
-        self, session: AsyncSession, *, skip: int = 0, limit: int = 100
-    ) -> Sequence[ModelT]:
+    session: AsyncSession
+
+    async def get_multi(self, *, skip: int = 0, limit: int = 100) -> Sequence[ModelT]:
         """Get multiple records with pagination."""
         stmt = select(self.model).offset(skip).limit(limit)
-        result = await session.execute(stmt)
+        result = await self.session.execute(stmt)
         return result.scalars().all()

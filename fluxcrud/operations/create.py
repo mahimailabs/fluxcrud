@@ -13,9 +13,9 @@ class CreateMixin(Generic[ModelT, SchemaT]):
 
     model: type[ModelT]
 
-    async def create(
-        self, session: AsyncSession, obj_in: SchemaT | dict[str, Any]
-    ) -> ModelT:
+    session: AsyncSession
+
+    async def create(self, obj_in: SchemaT | dict[str, Any]) -> ModelT:
         """Create a new record."""
         if isinstance(obj_in, dict):
             create_data = obj_in
@@ -23,7 +23,7 @@ class CreateMixin(Generic[ModelT, SchemaT]):
             create_data = obj_in.model_dump()
 
         db_obj = self.model(**create_data)
-        session.add(db_obj)
-        await session.commit()
-        await session.refresh(db_obj)
+        self.session.add(db_obj)
+        await self.session.commit()
+        await self.session.refresh(db_obj)
         return db_obj

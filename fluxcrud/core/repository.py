@@ -1,4 +1,5 @@
 import pickle
+from collections.abc import Sequence
 from typing import Any, Generic, TypeVar, cast
 
 from sqlalchemy import select
@@ -45,7 +46,7 @@ class Repository(BaseCRUD[ModelT, SchemaT], Generic[ModelT, SchemaT]):
         record_map = {r.id: r for r in records}
         return [record_map.get(id) for id in ids]
 
-    async def get(self, session: AsyncSession, id: Any) -> ModelT | None:
+    async def get(self, id: Any) -> ModelT | None:
         """Get by ID with Cache -> DataLoader (DB) fallback."""
         if self.cache_manager:
             key = self._get_cache_key(id)
@@ -62,6 +63,12 @@ class Repository(BaseCRUD[ModelT, SchemaT], Generic[ModelT, SchemaT]):
             await self.cache_manager.set(key, pickle.dumps(obj))
 
         return obj
+
+    async def get_multi(
+        self, skip: int = 0, limit: int = 100, **kwargs: Any
+    ) -> Sequence[ModelT]:
+        """Get multiple records."""
+        return await super().get_multi(skip=skip, limit=limit, **kwargs)
 
     async def get_many_by_ids(self, ids: list[Any]) -> list[ModelT | None]:
         """Get multiple by IDs."""
@@ -101,11 +108,9 @@ class Repository(BaseCRUD[ModelT, SchemaT], Generic[ModelT, SchemaT]):
 
         return results
 
-    async def create(
-        self, session: AsyncSession, obj_in: SchemaT | dict[str, Any]
-    ) -> ModelT:
+    async def create(self, obj_in: SchemaT | dict[str, Any]) -> ModelT:
         """Create new record and handle cache."""
-        obj = await super().create(session, obj_in)
+        obj = await super().create(obj_in)
         if self.cache_manager:
             key = self._get_cache_key(obj.id)
             await self.cache_manager.set(key, pickle.dumps(obj))
@@ -113,20 +118,19 @@ class Repository(BaseCRUD[ModelT, SchemaT], Generic[ModelT, SchemaT]):
 
     async def update(
         self,
-        session: AsyncSession,
         db_obj: ModelT,
         obj_in: SchemaT | dict[str, Any],
     ) -> ModelT:
         """Update record and invalidate/update cache."""
-        obj = await super().update(session, db_obj, obj_in)
+        obj = await super().update(db_obj, obj_in)
         if self.cache_manager:
             key = self._get_cache_key(obj.id)
             await self.cache_manager.set(key, pickle.dumps(obj))
         return obj
 
-    async def delete(self, session: AsyncSession, db_obj: ModelT) -> ModelT:
+    async def delete(self, db_obj: ModelT) -> ModelT:
         """Delete record and invalidate cache."""
-        obj = await super().delete(session, db_obj)
+        obj = await super().delete(db_obj)
         if self.cache_manager:
             key = self._get_cache_key(obj.id)
             await self.cache_manager.delete(key)
@@ -135,7 +139,7 @@ class Repository(BaseCRUD[ModelT, SchemaT], Generic[ModelT, SchemaT]):
         return obj
 
     async def create_many(
-        self, session: AsyncSession, objs_in: list[SchemaT | dict[str, Any]]
+        self, objs_in: list[SchemaT | dict[str, Any]]
     ) -> list[ModelT]:
         """Create multiple records efficiently."""
         data_list = []
@@ -146,8 +150,8 @@ class Repository(BaseCRUD[ModelT, SchemaT], Generic[ModelT, SchemaT]):
                 data_list.append(obj_in.model_dump())
 
         instances = [self.model(**data) for data in data_list]
-        session.add_all(instances)
-        await session.commit()
+        self.session.add_all(instances)
+        await self.session.commit()
 
         if self.cache_manager:
             for obj in instances:
@@ -158,17 +162,17 @@ class Repository(BaseCRUD[ModelT, SchemaT], Generic[ModelT, SchemaT]):
         return instances
 
     def batch_writer(
-        self, session: AsyncSession, batch_size: int = 100, flush_interval: float = 0.0
+        self, batch_size: int = 100, flush_interval: float = 0.0
     ) -> Batcher[SchemaT | dict[str, Any], None]:
         """
         Get a Batcher instance for streaming inserts.
 
         Usage:
-            async with repo.batch_writer(session) as writer:
+            async with repo.batch_writer() as writer:
                 await writer.add(item)
         """
 
         async def _processor(items: list[SchemaT | dict[str, Any]]) -> None:
-            await self.create_many(session, items)
+            await self.create_many(items)
 
         return Batcher(_processor, batch_size=batch_size, flush_interval=flush_interval)

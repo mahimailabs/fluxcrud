@@ -1,5 +1,7 @@
 from typing import Generic, TypeVar
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from fluxcrud.operations import (
     CreateMixin,
     DeleteMixin,
@@ -23,5 +25,9 @@ class BaseCRUD(
 ):
     """Base class for CRUD operations."""
 
-    def __init__(self, model: type[ModelT]):
+    session: AsyncSession
+
+    def __init__(self, model: type[ModelT], session: AsyncSession | None = None):
         self.model = model
+        if session:
+            self.session = session
