@@ -1,0 +1,41 @@
+# Benchmarks: FluxCRUD vs Others
+
+We compare FluxCRUD against **SQLAlchemy** and **FastCRUD** (a popular alternative) to measure overhead and performance.
+
+> **Environment**: SQLite (aiosqlite), Python 3.10, Linux.
+> **Operations**: 1000 items.
+
+## Results
+
+| Operation | Implementation | Time (s) | Ops/sec | Notes |
+| :--- | :--- | :--- | :--- | :--- |
+| **Insert** | **FluxCRUD (Batcher)** | **0.12s** | **~8,000** | Uses `batch_writer` (Chunked Inserts) |
+| | Raw SQLAlchemy (Bulk) | 0.21s | ~4,600 | `session.add_all` + `commit` |
+| | FluxCRUD (Simple) | 0.76s | ~1,300 | Sequential `await repo.create()` |
+| | FastCRUD | 0.80s | ~1,250 | Sequential `await crud.create()` |
+| | | | | |
+| **Read** | Raw SQLAlchemy | 0.27s | ~3,700 | Baseline |
+| | **FluxCRUD (Direct)** | **0.32s** | **~3,100** | **Fastest ORM-wrapper** (Default) |
+| | FastCRUD | 0.43s | ~2,300 | |
+| | FluxCRUD (Loader) | 0.50s | ~2,000 | N+1 Safe (Opt-in) |
+
+## Analysis
+
+### 1. High Performance Writes
+FluxCRUD's **Batcher** (`repo.batch_writer`) significantly outperforms sequential inserts (~4x faster) and rivals raw bulk inserts.
+
+### 2. Read Performance (New!)
+FluxCRUD is now **Fast by Default**. Use `Repository(..., use_loader=False)` (default) for maximum speed.
+1.  **Direct Read**: By bypassing the DataLoader and inlining operations, FluxCRUD is **~35% faster** than FastCRUD.
+2.  **Safety Option**: You can opt-in to `use_loader=True` for complex graph queries. This adds overhead (~50% slower than direct) but prevents N+1 issues automatically.
+3.  **Low Overhead**: FluxCRUD adds minimal overhead (~0.05s per 1000 items) over raw SQLAlchemy.
+
+### 3. Developer Experience
+*   **FluxCRUD** provides the `Batcher` out-of-the-box for high-throughput jobs.
+*   **FastCRUD** and **FluxCRUD** have similar performance for basic sequential operations, but FluxCRUD offers more robust tools (Caching, Batching) for scaling.
+
+## Running the Benchmark
+
+```bash
+uv run python benchmarks/comparison.py
+```
