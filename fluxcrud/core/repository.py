@@ -17,16 +17,21 @@ SchemaT = TypeVar("SchemaT", bound=SchemaProtocol)
 class Repository(BaseCRUD[ModelT, SchemaT], Generic[ModelT, SchemaT]):
     """Repository pattern implementation with DataLoader integration and Caching."""
 
+    __slots__ = ("session", "cache_manager", "use_loader", "id_loader", "model")
+
     def __init__(
         self,
         session: AsyncSession,
         model: type[ModelT],
         cache_manager: CacheManager | None = None,
+        use_loader: bool = False,
     ):
         super().__init__(model)
         self.session = session
         self.cache_manager = cache_manager
-        self._setup_dataloaders()
+        self.use_loader = use_loader
+        if self.use_loader:
+            self._setup_dataloaders()
 
     def _setup_dataloaders(self) -> None:
         """Create DataLoaders for this repository."""
@@ -55,7 +60,10 @@ class Repository(BaseCRUD[ModelT, SchemaT], Generic[ModelT, SchemaT]):
                 return cast(ModelT, pickle.loads(cached_bytes))
 
         # Cache miss or no cache:
-        obj = await self.id_loader.load(id)
+        if self.use_loader:
+            obj = await self.id_loader.load(id)
+        else:
+            return await self.session.get(self.model, id)
 
         if self.cache_manager and obj:
             key = self._get_cache_key(id)
@@ -73,7 +81,9 @@ class Repository(BaseCRUD[ModelT, SchemaT], Generic[ModelT, SchemaT]):
     async def get_many_by_ids(self, ids: list[Any]) -> list[ModelT | None]:
         """Get multiple by IDs."""
         if not self.cache_manager:
-            return await self.id_loader.load_many(ids)
+            if self.use_loader:
+                return await self.id_loader.load_many(ids)
+            return await self._batch_load_by_ids(ids)
 
         keys = [self._get_cache_key(id) for id in ids]
         cached_data = await self.cache_manager.get_many(keys)
@@ -94,7 +104,10 @@ class Repository(BaseCRUD[ModelT, SchemaT], Generic[ModelT, SchemaT]):
         if not missing_ids:
             return results
 
-        db_objects = await self.id_loader.load_many(missing_ids)
+        if self.use_loader:
+            db_objects = await self.id_loader.load_many(missing_ids)
+        else:
+            db_objects = await self._batch_load_by_ids(missing_ids)
 
         cache_update = {}
         for i, obj in zip(missing_indices, db_objects, strict=True):
@@ -110,7 +123,17 @@ class Repository(BaseCRUD[ModelT, SchemaT], Generic[ModelT, SchemaT]):
 
     async def create(self, obj_in: SchemaT | dict[str, Any]) -> ModelT:
         """Create new record and handle cache."""
-        obj = await super().create(obj_in)
+        # Inline creation for performance
+        if isinstance(obj_in, dict):
+            create_data = obj_in
+        else:
+            create_data = obj_in.model_dump()
+
+        obj = self.model(**create_data)
+        self.session.add(obj)
+        await self.session.commit()
+        await self.session.refresh(obj)
+
         if self.cache_manager:
             key = self._get_cache_key(obj.id)
             await self.cache_manager.set(key, pickle.dumps(obj))
@@ -122,7 +145,19 @@ class Repository(BaseCRUD[ModelT, SchemaT], Generic[ModelT, SchemaT]):
         obj_in: SchemaT | dict[str, Any],
     ) -> ModelT:
         """Update record and invalidate/update cache."""
-        obj = await super().update(db_obj, obj_in)
+        # Inline update for performance
+        if isinstance(obj_in, dict):
+            update_data = obj_in
+        else:
+            update_data = obj_in.model_dump(exclude_unset=True)
+
+        for field, value in update_data.items():
+            setattr(db_obj, field, value)
+
+        self.session.add(db_obj)
+        await self.session.commit()
+        await self.session.refresh(db_obj)
+        obj = db_obj
         if self.cache_manager:
             key = self._get_cache_key(obj.id)
             await self.cache_manager.set(key, pickle.dumps(obj))
@@ -130,12 +165,16 @@ class Repository(BaseCRUD[ModelT, SchemaT], Generic[ModelT, SchemaT]):
 
     async def delete(self, db_obj: ModelT) -> ModelT:
         """Delete record and invalidate cache."""
-        obj = await super().delete(db_obj)
+        # Inline delete for performance
+        await self.session.delete(db_obj)
+        await self.session.commit()
+        obj = db_obj
         if self.cache_manager:
             key = self._get_cache_key(obj.id)
             await self.cache_manager.delete(key)
 
-        self.id_loader.clear(obj.id)
+        if self.use_loader:
+            self.id_loader.clear(obj.id)
         return obj
 
     async def create_many(
