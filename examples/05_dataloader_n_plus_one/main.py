@@ -60,11 +60,12 @@ async def main():
     await session.commit()
 
     analyzer._query_count = 0
-    all_posts = await post_repo.get_multi(session, limit=50)
+    all_posts = await post_repo.get_multi(limit=50)
 
     users = []
     for post in all_posts:
-        users.append(await user_repo.get(session, post.user_id))
+        # Without DataLoader, this would be N queries
+        users.append(await user_repo.get(post.user_id))
 
     count_naive = analyzer._query_count
     print(f"Naive Loop:     {count_naive} queries")
@@ -77,7 +78,7 @@ async def main():
     post_repo = PostRepository(session, Post)
 
     analyzer._query_count = 0
-    all_posts = await post_repo.get_multi(session, limit=50)
+    all_posts = await post_repo.get_multi(limit=50)
 
     user_ids = [p.user_id for p in all_posts]
     users = await user_repo.get_many_by_ids(user_ids)  # noqa: F841

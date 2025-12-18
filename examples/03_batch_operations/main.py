@@ -24,14 +24,14 @@ async def main():
     # 1. Sequential Insert
     start = time.time()
     for i in range(NUM_ITEMS):
-        await repo.create(session, {"id": str(uuid4()), "name": f"seq_{i}", "value": i})
+        await repo.create({"id": str(uuid4()), "name": f"seq_{i}", "value": i})
 
     seq_time = time.time() - start
     print(f"Sequential: {seq_time:.3f}s")
 
     # 2. Batched Insert
     start = time.time()
-    async with repo.batch_writer(session, batch_size=100) as writer:
+    async with repo.batch_writer(batch_size=100) as writer:
         for i in range(NUM_ITEMS):
             await writer.add({"id": str(uuid4()), "name": f"batch_{i}", "value": i})
     batch_time = time.time() - start
