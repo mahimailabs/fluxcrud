@@ -33,7 +33,8 @@
             "pages": [
               "advanced/concurrency",
               "advanced/dataloader",
-              "advanced/optimization"
+              "advanced/optimization",
+              "advanced/benchmarks"
             ]
           }
         ]
