@@ -11,7 +11,7 @@ FluxCRUD includes a `QueryAnalyzer` to help you spot performance bottlenecks suc
 from fluxcrud.query import QueryAnalyzer
 
 async with QueryAnalyzer() as analyzer:
-    users = await repo.get_multi(session)
+    users = await repo.get_multi()
 
 print(f"Total Queries: {analyzer.count}")
 ```

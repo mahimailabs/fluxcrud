@@ -13,7 +13,7 @@ The `Batcher` queues items and flushes them in chunks, reducing network round-tr
 from fluxcrud.async_patterns import Batcher
 
 # Usage via context manager on Repository
-async with repo.batch_writer(session, batch_size=100) as writer:
+async with repo.batch_writer(batch_size=100) as writer:
     for i in range(5000):
         # Adds to buffer, auto-flushes at 100
         await writer.add({"name": f"Item {i}"})

@@ -18,10 +18,10 @@ The `Repository` class is the heart of FluxCRUD's data layer. It wraps SQLAlchem
 repo = Repository(model=User, schema=UserSchema)
 
 # Find by ID
-user = await repo.get(session, 1)
+user = await repo.get(1)
 
 # Create
-user = await repo.create(session, UserCreate(name="Alice"))
+user = await repo.create(UserCreate(name="Alice"))
 ```
 
 ## Advanced Features
@@ -33,7 +33,7 @@ When `CacheManager` is provided, `get()` calls check the cache first.
 ```python
 repo = Repository(..., cache_manager=redis_cache)
 # This will hit Redis first, then DB if missing
-user = await repo.get(session, 1)
+user = await repo.get(1)
 ```
 
 ### Batching
@@ -41,7 +41,7 @@ user = await repo.get(session, 1)
 Use the `batch_writer` context manager for high-performance inserts.
 
 ```python
-async with repo.batch_writer(session) as writer:
+async with repo.batch_writer() as writer:
     for item in big_list:
         await writer.add(item)
 ```

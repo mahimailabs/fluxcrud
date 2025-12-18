@@ -8,10 +8,10 @@ description: 'Solving the N+1 select problem'
 Fetching a list of posts and then fetching the author for each post in a loop causes the "N+1 Problem":
 
 ```python
-posts = await post_repo.get_multi(session) # 1 Query
+posts = await post_repo.get_multi() # 1 Query
 for post in posts:
     # N Queries!
-    author = await user_repo.get(session, post.user_id)
+    author = await user_repo.get(post.user_id)
 ```
 
 ## The Solution
