@@ -10,18 +10,29 @@ The `Repository` class is the heart of FluxCRUD's data layer. It wraps SQLAlchem
 *   **Type Validation**: Using Pydantic schemas.
 *   **Caching**: Automatic read-through and write-through caching.
 *   **Batching**: Optimized database writes.
-*   **N+1 Prevention**: Integrated DataLoader support.
+*   **N+1 Prevention**: Optional DataLoader support (opt-in).
 
 ## Basic Usage
 
+By default, the Repository uses direct SQL queries for maximum performance.
+
 ```python
-repo = Repository(model=User, schema=UserSchema)
-
-# Find by ID
-user = await repo.get(1)
-
 # Create
+repo = Repository(session, model=User, schema=UserSchema)
 user = await repo.create(UserCreate(name="Alice"))
+
+# Read (Direct SQL)
+user = await repo.get(1)
+```
+
+### Enabling DataLoader (N+1 Protection)
+
+When resolving relationships in loops (e.g., GraphQL or nested API responses), enable the DataLoader to batch queries automatically.
+
+```python
+repo = Repository(..., use_loader=True)
+# Queries will be batched
+user = await repo.get(1)
 ```
 
 ## Advanced Features
