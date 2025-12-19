@@ -63,7 +63,7 @@ class Repository(BaseCRUD[ModelT, SchemaT], Generic[ModelT, SchemaT]):
         if self.use_loader:
             obj = await self.id_loader.load(id)
         else:
-            return await self.session.get(self.model, id)
+            obj = await self.session.get(self.model, id)
 
         if self.cache_manager and obj:
             key = self._get_cache_key(id)
