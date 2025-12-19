@@ -14,6 +14,19 @@ class QueryAnalyzer:
     Analyzes queries for performance issues like N+1 problems or slow execution.
     """
 
+    async def __aenter__(self):
+        from fluxcrud.database import db
+
+        if not self._enabled and hasattr(db, "engine"):
+            self.enable(db.engine)
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        from fluxcrud.database import db
+
+        if hasattr(db, "engine"):
+            self.disable(db.engine)
+
     def __init__(self, slow_threshold_ms: float = 100.0):
         self.slow_threshold_ms = slow_threshold_ms
         self._query_count = 0
