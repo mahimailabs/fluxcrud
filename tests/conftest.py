@@ -1,4 +1,6 @@
+import os
 from collections.abc import AsyncGenerator
+from typing import Any
 
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,11 +12,16 @@ from fluxcrud.database import db
 @pytest_asyncio.fixture(scope="function")
 async def db_engine() -> AsyncGenerator[None, None]:
     """Initialize database engine."""
-    db.init(
-        "sqlite+aiosqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
+    database_url = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
+
+    init_kwargs: dict[str, Any] = {}
+    if "sqlite" in database_url:
+        init_kwargs = {
+            "connect_args": {"check_same_thread": False},
+            "poolclass": StaticPool,
+        }
+
+    db.init(database_url, **init_kwargs)
     yield
     await db.close()
 
