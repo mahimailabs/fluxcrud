@@ -4,8 +4,8 @@ on: [push, pull_request]
 
 jobs:
   test:
-    runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         python-version:
           - "3.14"
@@ -13,6 +13,26 @@ jobs:
           - "3.12"
           - "3.11"
           - "3.10"
+        db-type: [postgres]
+        include:
+          - python-version: "3.10"
+            db-type: sqlite
+            database-url: "sqlite+aiosqlite:///:memory:"
+
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: fluxcrud_test
+        ports:
+          - 5432/tcp
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
     - uses: actions/checkout@v4
@@ -30,5 +50,16 @@ jobs:
     - name: Install dependencies
       run: uv sync --all-extras --dev
 
+    - name: Configure Database Connection
+      run: |
+        if [ "${{ matrix.db-type }}" == "postgres" ]; then
+          PORT=${{ job.services.postgres.ports[5432] }}
+          echo "DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:$PORT/fluxcrud_test" >> $GITHUB_ENV
+        else
+          echo "DATABASE_URL=sqlite+aiosqlite:///:memory:" >> $GITHUB_ENV
+        fi
+
     - name: Run tests
+      env:
+        DATABASE_URL: ${{ env.DATABASE_URL }}
       run: uv run pytest
