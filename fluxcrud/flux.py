@@ -21,11 +21,16 @@ class Flux:
     """
 
     def __init__(
-        self, app: FastAPI, db_url: str, base: type[DeclarativeBase] | None = None
+        self,
+        app: FastAPI,
+        db_url: str,
+        base: type[DeclarativeBase] | None = None,
+        **engine_options,
     ):
         self.app = app
         self.db_url = db_url
         self.base = base
+        self.engine_options = engine_options
         self._setup_lifecycle()
 
     def attach_base(self, base: type[DeclarativeBase]) -> None:
@@ -38,7 +43,7 @@ class Flux:
 
         @asynccontextmanager
         async def lifespan(app: FastAPI):
-            db.init(self.db_url)
+            db.init(self.db_url, **self.engine_options)
             assert db.engine is not None
             if self.base:
                 async with db.engine.begin() as conn:
