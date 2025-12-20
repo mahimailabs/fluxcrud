@@ -1,6 +1,9 @@
+import os
+
 from fastapi import FastAPI
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.pool import StaticPool
 
 from fluxcrud.flux import Flux
 
@@ -21,19 +24,29 @@ class ItemSchema(BaseModel):
     name: str
 
 
+def get_db_config():
+    db_url = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
+    kwargs = {}
+    if "sqlite" in db_url:
+        kwargs = {"connect_args": {"check_same_thread": False}, "poolclass": StaticPool}
+    return db_url, kwargs
+
+
 def test_flux_initialization():
     app = FastAPI()
-    flux = Flux(app, "sqlite+aiosqlite:///:memory:")
+    db_url, kwargs = get_db_config()
+    flux = Flux(app, db_url, **kwargs)
     flux.attach_base(Base)
     assert flux.app == app
-    assert flux.db_url == "sqlite+aiosqlite:///:memory:"
+    assert flux.db_url == db_url
     assert flux.base == Base
     assert app.router.lifespan_context is not None
 
 
 def test_flux_register():
     app = FastAPI()
-    flux = Flux(app, "sqlite+aiosqlite:///:memory:")
+    db_url, kwargs = get_db_config()
+    flux = Flux(app, db_url, **kwargs)
     flux.attach_base(Base)
 
     flux.register(Item, ItemSchema)
@@ -62,7 +75,8 @@ def test_flux_wraps_lifespan():
 
     app = FastAPI(lifespan=my_lifespan)
     # Initialize Flux
-    Flux(app, "sqlite+aiosqlite:///:memory:")
+    db_url, kwargs = get_db_config()
+    Flux(app, db_url, **kwargs)
 
     # Trigger lifespan via TestClient
     with TestClient(app):

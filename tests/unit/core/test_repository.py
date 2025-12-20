@@ -34,11 +34,31 @@ def cache_manager():
 
 
 @pytest_asyncio.fixture
-async def cache_repo(session, cache_manager):
+async def managed_tables(db_engine):
+    """Create and drop tables for this test module."""
     from fluxcrud.database import db
 
     async with db.engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
+
+    yield
+
+    async with db.engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+
+
+@pytest_asyncio.fixture
+async def session(db_engine, managed_tables):
+    """Override session to ensure it runs inside managed_tables scope."""
+    from fluxcrud.database import db
+
+    async for session in db.get_session():
+        yield session
+
+
+@pytest_asyncio.fixture
+async def cache_repo(session, cache_manager):
     return MockRepo(session, MockItem, cache_manager=cache_manager, use_loader=False)
 
 
