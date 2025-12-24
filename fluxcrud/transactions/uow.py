@@ -16,7 +16,7 @@ class UnitOfWork:
     Groups multiple operations into a single atomic transaction.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.session: AsyncSession | None = None
         self.repositories: dict[tuple[type, type], Repository] = {}
 

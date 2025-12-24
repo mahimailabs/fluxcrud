@@ -115,7 +115,7 @@ class PluginManager:
     """Manages plugin registration and execution."""
 
     def __init__(self, plugins: list[Plugin] | None = None):
-        self.plugins = []
+        self.plugins: list[Plugin] = []
         if plugins:
             for plugin in plugins:
                 self.add_plugin(plugin)
