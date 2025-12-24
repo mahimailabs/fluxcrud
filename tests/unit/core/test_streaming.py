@@ -88,21 +88,15 @@ async def test_eager_loading(session, streaming_tables):
     parent_repo = ParentRepo(session, Parent)
     child_repo = ChildRepo(session, Child)
 
-    # Seed Data
-    p1 = await parent_repo.create(ParentSchema(id="p1", name="Parent 1"))  # noqa: F841
+    await parent_repo.create(ParentSchema(id="p1", name="Parent 1"))
     await child_repo.create(ChildSchema(id="c1", name="Child 1", parent_id="p1"))
 
-    # Test get with eager load
-    # Note: selectinload is often preferred for async
     loaded_parent = await parent_repo.get("p1", selectinload(Parent.children))
     assert loaded_parent is not None
 
-    # Access children (should not raise MissingGreenlet or similar if loaded)
-    # Since we used selectinload, children populate a list
     assert len(loaded_parent.children) == 1
     assert loaded_parent.children[0].name == "Child 1"
 
-    # Test get_multi with eager load
     loaded_parents = await parent_repo.get_multi(
         options=[selectinload(Parent.children)]
     )
