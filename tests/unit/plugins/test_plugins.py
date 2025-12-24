@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 import pytest
@@ -36,7 +36,7 @@ class TimestampPlugin(BasePlugin):
     async def on_before_create(
         self, model: type[Any], data: dict[str, Any]
     ) -> dict[str, Any]:
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         data["created_at"] = now
         data["updated_at"] = now
         return data
@@ -44,7 +44,7 @@ class TimestampPlugin(BasePlugin):
     async def on_before_update(
         self, model: type[Any], db_obj: Any, data: dict[str, Any]
     ) -> dict[str, Any]:
-        data["updated_at"] = datetime.now()
+        data["updated_at"] = datetime.now(timezone.utc)
         return data
 
     async def on_after_query(self, results: Any) -> Any:
