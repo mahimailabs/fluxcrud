@@ -1,6 +1,14 @@
 name: Type Checking
 
-on: [push, pull_request]
+on:
+  push:
+    paths:
+      - "fluxcrud/**"
+      - "tests/**"
+  pull_request:
+    paths:
+      - "fluxcrud/**"
+      - "tests/**"
 
 jobs:
   type-check:
