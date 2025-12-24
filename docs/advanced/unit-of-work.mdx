@@ -1,0 +1,63 @@
+---
+title: 'Unit of Work'
+description: 'Manage atomic transactions across multiple repositories'
+icon: 'layer-group'
+---
+
+The Unit of Work (UoW) pattern is essential for maintaining data integrity when checking ensures that multiple database operations either all succeed or all fail together (atomicity).
+
+## Why Unit of Work?
+
+By default, FluxCRUD repositories can manage their own sessions (simple mode). However, when you need to perform an operation that involves:
+1.  Creating a User
+2.  Creating a Profile for that User
+3.  Sending a welcome email (simulated)
+
+If step 3 fails, you might want to rollback steps 1 and 2. This is where UoW shines.
+
+## Usage
+
+Use the `UnitOfWork` class as an async context manager. It automatically handles transaction management: `begin`, `commit`, and `rollback`.
+
+```python
+from fluxcrud.transactions import UnitOfWork
+
+async def register_user(user_data: dict):
+    uow = UnitOfWork()
+
+    try:
+        async with uow:
+            # Get repositories bound to the same transaction
+            user_repo = uow.repository(User, UserSchema)
+            profile_repo = uow.repository(Profile, ProfileSchema)
+
+            # 1. Create User
+            user = await user_repo.create(user_data)
+
+            # 2. Create Profile
+            await profile_repo.create({"user_id": user.id, "bio": "New user"})
+
+            # Transaction commits automatically at the end of the block
+            # if no exception is raised
+
+    except Exception as e:
+        # Rollback happens automatically on exception
+        print(f"Registration failed: {e}")
+        raise
+```
+
+## How It Works
+
+1.  **Shared Session**: The UoW creates a single SQLAlchemy `AsyncSession` and shares it across all repositories retrieved via `uow.repository()`.
+2.  **Auto-Rollback**: If an exception occurs within the `async with` block, the transaction is strictly rolled back.
+3.  **Auto-Commit**: If the block exits successfully, `commit()` is called.
+4.  **Resource Cleanup**: The session is guaranteed to close, preventing connection leaks.
+
+## Type Safety
+
+The `uow.repository(Model, Schema)` method is fully typed, ensuring that you get a `Repository[Model, Schema]` instance with correct type hints for all operations.
+
+```python
+repo = uow.repository(User, UserSchema)
+# repo is typed as Repository[User, UserSchema]
+```

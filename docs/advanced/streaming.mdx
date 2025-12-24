@@ -1,0 +1,56 @@
+---
+title: 'Streaming & Optimization'
+description: 'Efficiently handle large datasets and complex relationships'
+icon: 'bolt'
+---
+
+FluxCRUD includes features to optimize performance when dealing with large datasets or complex data relationships.
+
+## Result Streaming
+
+When fetching thousands of records, loading them all into memory with `get_multi` can be inefficient. Instead, use `stream_multi` to process records one by one as they are fetched from the database.
+
+```python
+# Iterate through records without loading all into memory
+async for user in user_repo.stream_multi(limit=10000):
+    await process_user(user)
+```
+
+## Batch Writing
+
+For high-performance inserts, use the `batch_writer` context manager. It automatically batches `create` operations and flushes them to the database.
+
+```python
+async with user_repo.batch_writer(batch_size=100) as writer:
+    for user_data in large_dataset:
+        await writer.add(user_data)
+# Remaining items are automatically flushed here
+```
+
+## Eager Loading
+
+To prevent N+1 query problems, you can eagerly load related data using SQLAlchemy options.
+
+### Usage
+
+All read methods (`get`, `get_multi`, `stream_multi`) accept an `options` argument.
+
+```python
+from sqlalchemy.orm import selectinload
+
+# Eagerly load the 'profile' relationship
+user = await user_repo.get(
+    "user_123",
+    options=[selectinload(User.profile)]
+)
+
+# Accessing related data won't trigger a new query
+print(user.profile.bio)
+```
+
+### DataLoader vs Selectinload
+
+- **DataLoaders** (built-in): Best for resolving relationships *after* the initial query, especially in GraphQL or highly nested REST endpoints. They batch separate queries.
+- **Eager Loading** (`selectinload`): Best when you *know* you need the related data immediately. It optimizes the initial query (or issues a single secondary query) to fetch everything at once.
+
+FluxCRUD intelligently disables DataLoaders for a request if explicit `options` are provided, giving you full control over the fetching strategy.
