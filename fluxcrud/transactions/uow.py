@@ -18,7 +18,7 @@ class UnitOfWork:
 
     def __init__(self):
         self.session: AsyncSession | None = None
-        self.repositories: dict[type, Repository] = {}
+        self.repositories: dict[tuple[type, type], Repository] = {}
 
     async def __aenter__(self) -> "UnitOfWork":
         if not db.session_factory:
@@ -52,12 +52,13 @@ class UnitOfWork:
                 "UnitOfWork context not active. Use 'async with uow: ...'"
             )
 
-        if model not in self.repositories:
+        key = (model, schema)
+        if key not in self.repositories:
             # We create a transient repository bound to this session
-            self.repositories[model] = Repository(
+            self.repositories[key] = Repository(
                 session=self.session,
                 model=model,
                 auto_commit=False,
             )
 
-        return self.repositories[model]  # type: ignore
+        return self.repositories[key]  # type: ignore
