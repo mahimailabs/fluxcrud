@@ -46,6 +46,11 @@ class TimestampPlugin:
         data["updated_at"] = datetime.now()
         return data
 
+    async def on_after_query(self, results: Any) -> Any:
+        for item in results:
+            item.name = f"{item.name} (Processed)"
+        return results
+
 
 class MockPluginRepo(Repository[PluginItem, PluginSchema]):
     pass
@@ -86,3 +91,21 @@ async def test_plugin_lifecycle(session, managed_plugin_tables):
 
     assert updated_item.name == "Updated Plugin"
     assert updated_item.updated_at > updated_item.created_at
+
+
+@pytest.mark.asyncio
+async def test_plugin_query_hooks(session, managed_plugin_tables):
+    repo = MockPluginRepo(
+        session=session, model=PluginItem, plugins=[TimestampPlugin()]
+    )
+
+    # Create items
+    await repo.create(PluginSchema(id="q1", name="Query 1"))
+    await repo.create(PluginSchema(id="q2", name="Query 2"))
+
+    # Test get_multi -> calls on_after_query
+    results = await repo.get_multi()
+
+    assert len(results) == 2
+    assert results[0].name.endswith("(Processed)")
+    assert results[1].name.endswith("(Processed)")
