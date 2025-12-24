@@ -45,8 +45,9 @@ async def test_uow_commit(db_engine, managed_uow_tables):
         await repo.create(UoWSchema(id="2", name="UoW 2"))
 
     # Verify outside UoW (new session)
-    async with uow:
-        repo = uow.repository(UoWItem, UoWSchema)
+    verification_uow = UnitOfWork()
+    async with verification_uow:
+        repo = verification_uow.repository(UoWItem, UoWSchema)
         item1 = await repo.get("1")
         item2 = await repo.get("2")
         assert item1 is not None
@@ -66,7 +67,8 @@ async def test_uow_rollback(db_engine, managed_uow_tables):
         pass
 
     # Verify rollback
-    async with uow:
-        repo = uow.repository(UoWItem, UoWSchema)
+    verification_uow = UnitOfWork()
+    async with verification_uow:
+        repo = verification_uow.repository(UoWItem, UoWSchema)
         item3 = await repo.get("3")
         assert item3 is None
