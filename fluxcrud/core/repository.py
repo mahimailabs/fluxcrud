@@ -312,10 +312,14 @@ class Repository(BaseCRUD[ModelT, SchemaT], Generic[ModelT, SchemaT]):
             await self.session.flush()
 
         if self.auto_commit and self.cache_manager:
+            cache_data = {}
             for obj in instances:
                 if hasattr(obj, "id") and obj.id:
                     key = self._get_cache_key(obj.id)
-                    await self.cache_manager.set(key, pickle.dumps(obj))
+                    cache_data[key] = pickle.dumps(obj)
+
+            if cache_data:
+                await self.cache_manager.set_many(cache_data)
 
         return instances
 
