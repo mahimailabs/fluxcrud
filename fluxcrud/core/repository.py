@@ -303,13 +303,29 @@ class Repository(BaseCRUD[ModelT, SchemaT], Generic[ModelT, SchemaT]):
             else:
                 data_list.append(obj_in.model_dump())
 
-        instances = [self.model(**data) for data in data_list]
+        processed_data_list = []
+        if self.plugin_manager.plugins:
+            for data in data_list:
+                processed_data = await self.plugin_manager.execute_hook(
+                    LifecycleHook.BEFORE_CREATE, self.model, data
+                )
+                processed_data_list.append(processed_data)
+        else:
+            processed_data_list = data_list
+
+        instances = [self.model(**data) for data in processed_data_list]
         self.session.add_all(instances)
 
         if self.auto_commit:
             await self.session.commit()
         else:
             await self.session.flush()
+
+        if self.plugin_manager.plugins:
+            for obj in instances:
+                await self.plugin_manager.execute_hook(
+                    LifecycleHook.AFTER_CREATE, self.model, obj
+                )
 
         if self.auto_commit and self.cache_manager:
             cache_data = {}
