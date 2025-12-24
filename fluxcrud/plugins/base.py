@@ -62,6 +62,14 @@ class Plugin(Protocol):
         """Modify the results of a query."""
         ...
 
+    async def on_before_get(self, model: type[Any], id: Any) -> None:
+        """React before getting a single record."""
+        ...
+
+    async def on_after_get(self, model: type[Any], instance: Any) -> None:
+        """React after getting a single record."""
+        ...
+
 
 class PluginManager:
     """Manages plugin registration and execution."""
