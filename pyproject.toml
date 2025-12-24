@@ -120,4 +120,4 @@ exclude_lines = [
 ]
 
 [tool.pyright]
-typeCheckingMode = "off"
+typeCheckingMode = "off" # mypy is used for type checking
