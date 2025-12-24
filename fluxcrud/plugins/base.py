@@ -96,12 +96,20 @@ class PluginManager:
                 if hook == LifecycleHook.BEFORE_CREATE:
                     # method(model, data) -> data
                     result = await method(*args)
+                    if result is None:
+                        raise ValueError(
+                            f"Plugin {plugin.name} returned None from {method_name}"
+                        )
                     # Update args for next plugin
                     args = (args[0], result)
 
                 elif hook == LifecycleHook.BEFORE_UPDATE:
                     # method(model, db_obj, data) -> data
                     result = await method(*args)
+                    if result is None:
+                        raise ValueError(
+                            f"Plugin {plugin.name} returned None from {method_name}"
+                        )
                     # Update data arg (last arg) for next plugin
                     args = (args[0], args[1], result)
 
