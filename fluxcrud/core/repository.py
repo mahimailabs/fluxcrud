@@ -77,7 +77,7 @@ class Repository(BaseCRUD[ModelT, SchemaT], Generic[ModelT, SchemaT]):
                 LifecycleHook.BEFORE_GET, self.model, id
             )
 
-        if self.use_loader:
+        if self.use_loader and not options:
             obj = await self.id_loader.load(id)
         elif options:
             stmt = select(self.model).where(self.model.id == id).options(*options)
