@@ -8,6 +8,7 @@ from sqlalchemy import Column, DateTime, String
 from sqlalchemy.orm import DeclarativeBase
 
 from fluxcrud.core.repository import Repository
+from fluxcrud.plugins.base import BasePlugin
 
 
 class Base(DeclarativeBase):
@@ -29,7 +30,7 @@ class PluginSchema(BaseModel):
     updated_at: datetime | None = None
 
 
-class TimestampPlugin:
+class TimestampPlugin(BasePlugin):
     name = "timestamp"
 
     async def on_before_create(
