@@ -37,6 +37,17 @@ class Repository(BaseCRUD[ModelT, SchemaT], Generic[ModelT, SchemaT]):
         plugins: list[Plugin] | None = None,
         auto_commit: bool = True,
     ):
+        """
+        Initialize the repository with session, model, optional caching, dataloader usage, plugins, and commit behavior.
+        
+        Parameters:
+            session (AsyncSession): Async SQLAlchemy session used for DB operations.
+            model (type[ModelT]): ORM model class managed by this repository.
+            cache_manager (CacheManager | None): Optional cache manager used to read/write cached model instances.
+            use_loader (bool): If True, enable an ID-based DataLoader for batched/optimized ID fetches.
+            plugins (list[Plugin] | None): Optional list of plugin instances to attach via the repository's PluginManager.
+            auto_commit (bool): If True, repository write operations will commit (and refresh) automatically; otherwise they will only flush.
+        """
         super().__init__(model)
         self.session = session
         self.cache_manager = cache_manager
@@ -55,7 +66,15 @@ class Repository(BaseCRUD[ModelT, SchemaT], Generic[ModelT, SchemaT]):
         return f"{self.model.__tablename__}:{id}"
 
     async def _batch_load_by_ids(self, ids: list[Any]) -> list[ModelT | None]:
-        """Batch load records by IDs."""
+        """
+        Batch load model instances for the given primary key values preserving input order.
+        
+        Parameters:
+            ids (list[Any]): Sequence of primary key values to fetch; order determines output order.
+        
+        Returns:
+            list[ModelT | None]: A list of model instances or `None` for missing entries, aligned with the input `ids` order.
+        """
         stmt = select(self.model).where(self.model.id.in_(ids))
         result = await self.session.execute(stmt)
         records = result.scalars().all()
@@ -65,7 +84,17 @@ class Repository(BaseCRUD[ModelT, SchemaT], Generic[ModelT, SchemaT]):
         return [record_map.get(id) for id in ids]
 
     async def get(self, id: Any, *options: Any) -> ModelT | None:
-        """Get by ID with Cache -> DataLoader (DB) fallback."""
+        """
+        Retrieve a model instance by primary key, preferring a cached value and falling back to the DataLoader or direct DB query.
+        
+        If plugins are configured, BEFORE_GET and AFTER_GET lifecycle hooks may be executed. If a CacheManager is configured, a found instance will be stored in cache.
+        
+        Parameters:
+            *options (Any): Optional SQLAlchemy loader options (for example `joinedload(...)`) applied to the select statement when provided.
+        
+        Returns:
+            The model instance for the given id, or `None` if no matching record exists.
+        """
         if self.cache_manager:
             key = self._get_cache_key(id)
             cached_bytes = await self.cache_manager.get(key)
@@ -106,7 +135,20 @@ class Repository(BaseCRUD[ModelT, SchemaT], Generic[ModelT, SchemaT]):
         options: Sequence[Any] | None = None,
         **kwargs: Any,
     ) -> Sequence[ModelT]:
-        """Get multiple records with optional eager loading."""
+        """
+        Query multiple model instances with pagination and optional loader options.
+        
+        If plugins are registered, the BEFORE_QUERY lifecycle hook may modify the SQL statement before execution and the AFTER_QUERY hook may modify the returned results.
+        
+        Parameters:
+            skip (int): Number of rows to skip (offset).
+            limit (int): Maximum number of rows to return.
+            options (Sequence[Any] | None): Optional SQLAlchemy loader/option objects to apply to the statement (e.g., eager-loading options).
+            **kwargs: Ignored; kept for compatibility.
+        
+        Returns:
+            Sequence[ModelT]: Sequence of model instances matching the query in result order.
+        """
         stmt = select(self.model).offset(skip).limit(limit)
 
         if options:
@@ -135,7 +177,20 @@ class Repository(BaseCRUD[ModelT, SchemaT], Generic[ModelT, SchemaT]):
         options: Sequence[Any] | None = None,
         **kwargs: Any,
     ) -> AsyncGenerator[ModelT, None]:
-        """Stream multiple records efficiently."""
+        """
+        Stream model instances from the database in a memory-efficient asynchronous generator.
+        
+        Executes the `BEFORE_QUERY` plugin hook if plugins are registered; any hook-modified statement is used for streaming.
+        
+        Parameters:
+            skip (int): Number of rows to skip.
+            limit (int): Maximum number of rows to return.
+            options (Sequence[Any] | None): Optional SQLAlchemy statement options (e.g., loader options) to apply to the query.
+            **kwargs: Reserved for future use / compatibility and ignored by this method.
+        
+        Returns:
+            AsyncGenerator[ModelT, None]: Yields model instances that match the query, in result order.
+        """
         stmt = select(self.model).offset(skip).limit(limit)
 
         if options:
@@ -151,7 +206,17 @@ class Repository(BaseCRUD[ModelT, SchemaT], Generic[ModelT, SchemaT]):
             yield row
 
     async def get_many_by_ids(self, ids: list[Any]) -> list[ModelT | None]:
-        """Get multiple by IDs."""
+        """
+        Retrieve multiple model instances by their primary keys, preserving the input order.
+        
+        When a cache manager is configured, cached entries are used when available; missing items are loaded from the database and any newly retrieved instances are written back to the cache. When no cache manager is configured, objects are loaded directly (optionally via the repository's DataLoader).
+        
+        Parameters:
+            ids (list[Any]): Sequence of primary key values to fetch.
+        
+        Returns:
+            list[ModelT | None]: A list aligned with `ids` where each element is the model instance for that id or `None` if no record exists.
+        """
         if not self.cache_manager:
             if self.use_loader:
                 return await self.id_loader.load_many(ids)
@@ -194,7 +259,15 @@ class Repository(BaseCRUD[ModelT, SchemaT], Generic[ModelT, SchemaT]):
         return results
 
     async def create(self, obj_in: SchemaT | dict[str, Any]) -> ModelT:
-        """Create new record and handle cache."""
+        """
+        Create and persist a new model instance, run lifecycle hooks, and cache the result when applicable.
+        
+        Parameters:
+            obj_in (SchemaT | dict[str, Any]): Input data for the new record; may be a schema instance or a plain dict.
+        
+        Returns:
+            ModelT: The created and persisted model instance.
+        """
         # Inline creation for performance
         if isinstance(obj_in, dict):
             create_data = obj_in
@@ -229,7 +302,21 @@ class Repository(BaseCRUD[ModelT, SchemaT], Generic[ModelT, SchemaT]):
         db_obj: ModelT,
         obj_in: SchemaT | dict[str, Any],
     ) -> ModelT:
-        """Update record and invalidate/update cache."""
+        """
+        Update fields on an existing model instance and persist the change.
+        
+        Parameters:
+            db_obj (ModelT): Existing model instance to update.
+            obj_in (SchemaT | dict[str, Any]): Update data as a schema instance or a plain dict. When a schema is provided, only fields explicitly set on the schema are applied.
+        
+        Returns:
+            ModelT: The updated model instance.
+        
+        Notes:
+            - Executes BEFORE_UPDATE and AFTER_UPDATE lifecycle hooks when plugins are configured.
+            - If `auto_commit` is true, the change is committed and the instance refreshed; otherwise the session is flushed.
+            - When `auto_commit` is true and a `cache_manager` is configured, the cache entry for the updated object is replaced.
+        """
         # Inline update for performance
         if isinstance(obj_in, dict):
             update_data = obj_in
@@ -264,7 +351,17 @@ class Repository(BaseCRUD[ModelT, SchemaT], Generic[ModelT, SchemaT]):
         return obj
 
     async def delete(self, db_obj: ModelT) -> ModelT:
-        """Delete record and invalidate cache."""
+        """
+        Delete a model instance and perform configured post-delete side effects.
+        
+        If plugins are registered, executes the BEFORE_DELETE and AFTER_DELETE lifecycle hooks.
+        Commits the transaction when the repository is configured with auto_commit=True; otherwise flushes the session.
+        If auto_commit is True and a cache manager is configured, removes the instance's cache entry.
+        If DataLoader is enabled, clears the instance id from the id loader.
+        
+        Returns:
+            The deleted model instance.
+        """
         # Inline delete for performance
         if self.plugin_manager.plugins:
             await self.plugin_manager.execute_hook(
@@ -295,7 +392,17 @@ class Repository(BaseCRUD[ModelT, SchemaT], Generic[ModelT, SchemaT]):
     async def create_many(
         self, objs_in: list[SchemaT | dict[str, Any]]
     ) -> list[ModelT]:
-        """Create multiple records efficiently."""
+        """
+        Create multiple model instances from schemas or dictionaries and persist them to the database.
+        
+        Each input may be a schema instance (converted to a dict) or a plain dict of field values. If plugins are registered, the repository executes BEFORE_CREATE for each item before instantiation and AFTER_CREATE for each instance after persistence. When auto_commit is True the session is committed; otherwise the session is flushed. If auto_commit is True and a cache manager is configured, newly created instances with an `id` are written to the cache.
+        
+        Parameters:
+            objs_in (list[SchemaT | dict[str, Any]]): Items to create, each either a schema object (will be converted to a dict) or a dict of field values.
+        
+        Returns:
+            list[ModelT]: The list of persisted model instances.
+        """
         data_list = []
         for obj_in in objs_in:
             if isinstance(obj_in, dict):
