@@ -118,7 +118,14 @@ class Repository(BaseCRUD[ModelT, SchemaT], Generic[ModelT, SchemaT]):
             )
 
         result = await self.session.execute(stmt)
-        return result.scalars().all()
+        results = result.scalars().all()
+
+        if self.plugin_manager.plugins:
+            results = await self.plugin_manager.execute_hook(
+                LifecycleHook.AFTER_QUERY, results
+            )
+
+        return results
 
     async def stream_multi(
         self,
