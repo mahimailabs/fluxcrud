@@ -108,5 +108,26 @@ async def test_plugin_query_hooks(session, managed_plugin_tables):
     results = await repo.get_multi()
 
     assert len(results) == 2
+    assert len(results) == 2
     assert results[0].name.endswith("(Processed)")
     assert results[1].name.endswith("(Processed)")
+
+
+@pytest.mark.asyncio
+async def test_plugin_create_many(session, managed_plugin_tables):
+    repo = MockPluginRepo(
+        session=session, model=PluginItem, plugins=[TimestampPlugin()]
+    )
+
+    items_in = [
+        PluginSchema(id="b1", name="Batch 1"),
+        PluginSchema(id="b2", name="Batch 2"),
+    ]
+    created_items = await repo.create_many(items_in)
+
+    assert len(created_items) == 2
+    for item in created_items:
+        # Check that BEFORE_CREATE hook ran (created_at set)
+        assert item.created_at is not None
+        assert item.updated_at is not None
+        assert item.created_at == item.updated_at
