@@ -25,6 +25,7 @@ class Repository(BaseCRUD[ModelT, SchemaT], Generic[ModelT, SchemaT]):
         "id_loader",
         "model",
         "plugin_manager",
+        "auto_commit",
     )
 
     def __init__(
