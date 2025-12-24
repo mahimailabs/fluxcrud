@@ -34,12 +34,13 @@ class UnitOfWork:
         if not self.session:
             return
 
-        if exc_type:
-            await self.session.rollback()
-        else:
-            await self.session.commit()
-
-        await self.session.close()
+        try:
+            if exc_type:
+                await self.session.rollback()
+            else:
+                await self.session.commit()
+        finally:
+            await self.session.close()
 
     def repository(
         self, model: type[ModelT], schema: type[SchemaT]
