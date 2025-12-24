@@ -71,6 +71,46 @@ class Plugin(Protocol):
         ...
 
 
+class BasePlugin:
+    """Base implementation of Plugin protocol with default no-op behavior."""
+
+    name: str = "base"
+
+    async def on_before_create(
+        self, model: type[Any], data: dict[str, Any]
+    ) -> dict[str, Any]:
+        return data
+
+    async def on_after_create(self, model: type[Any], instance: Any) -> None:
+        pass
+
+    async def on_before_update(
+        self, model: type[Any], db_obj: Any, data: dict[str, Any]
+    ) -> dict[str, Any]:
+        return data
+
+    async def on_after_update(self, model: type[Any], instance: Any) -> None:
+        pass
+
+    async def on_before_delete(self, model: type[Any], instance: Any) -> None:
+        pass
+
+    async def on_after_delete(self, model: type[Any], instance: Any) -> None:
+        pass
+
+    async def on_before_query(self, query: Select) -> Select:
+        return query
+
+    async def on_after_query(self, results: Sequence[Any]) -> Sequence[Any]:
+        return results
+
+    async def on_before_get(self, model: type[Any], id: Any) -> None:
+        pass
+
+    async def on_after_get(self, model: type[Any], instance: Any) -> None:
+        pass
+
+
 class PluginManager:
     """Manages plugin registration and execution."""
 
