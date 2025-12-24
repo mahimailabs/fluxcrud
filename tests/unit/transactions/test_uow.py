@@ -13,8 +13,8 @@ class Base(DeclarativeBase):
 
 class UoWItem(Base):
     __tablename__ = "uow_items"
-    id = Column(String, primary_key=True)
-    name = Column(String)
+    id = Column(String(255), primary_key=True)
+    name = Column(String(255))
 
 
 class UoWSchema(BaseModel):
