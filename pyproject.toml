@@ -118,3 +118,6 @@ exclude_lines = [
     "class .*\\bProtocol\\):",
     "@(abc\\.)?abstractmethod",
 ]
+
+[tool.pyright]
+typeCheckingMode = "off"
