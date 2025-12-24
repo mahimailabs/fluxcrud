@@ -1,0 +1,87 @@
+---
+title: 'Plugin System'
+description: 'Extend repository behavior with lifecycle hooks'
+icon: 'puzzle-piece'
+---
+
+FluxCRUD provides a powerful plugin system that allows you to intercept repository operations and execute custom logic. This is perfect for implementing cross-cutting concerns like audit logging, validation, metrics, or data enrichment.
+
+## Overview
+
+Plugins are classes that implement the `Plugin` protocol. You can hook into various stages of the CRUD lifecycle:
+- **Create**: `BEFORE_CREATE`, `AFTER_CREATE`
+- **Update**: `BEFORE_UPDATE`, `AFTER_UPDATE`
+- **Delete**: `BEFORE_DELETE`, `AFTER_DELETE`
+- **Get**: `BEFORE_GET`, `AFTER_GET`
+- **Query**: `BEFORE_QUERY` (modify query), `AFTER_QUERY` (transform results)
+
+## Creating a Plugin
+
+The recommended way to create a plugin is to inherit from `BasePlugin`. This class provides default no-op implementations for all hooks, so you only need to override the methods you care about.
+
+```python
+from typing import Any
+from fluxcrud.plugins import BasePlugin
+
+class AuditLoggerPlugin(BasePlugin):
+    name = "audit_logger"
+
+    async def on_after_create(self, model: type[Any], instance: Any) -> None:
+        print(f"Created {model.__name__} with ID {instance.id}")
+
+    async def on_after_update(self, model: type[Any], instance: Any) -> None:
+        print(f"Updated {model.__name__} with ID {instance.id}")
+```
+
+## Registering Plugins
+
+Pass a list of plugin instances when initializing your repository:
+
+```python
+repo = UserRepository(
+    session=session,
+    model=User,
+    plugins=[AuditLoggerPlugin()]
+)
+```
+
+## Lifecycle Hooks
+
+### Data Transformation Hooks
+These hooks allow you to modify data before it reaches the database or returned to the user.
+
+- **`on_before_create(self, model, data) -> dict`**: Modify creation data.
+- **`on_before_update(self, model, db_obj, data) -> dict`**: Modify update data.
+- **`on_before_query(self, query) -> Select`**: Modify the SQLAlchemy query object (e.g., add filters).
+- **`on_after_query(self, results) -> Sequence`**: Modify or enrich the list of results.
+
+### Side-Effect Hooks
+These hooks are for actions that don't modify the data flow, like logging or notifications. They return `None`.
+
+- **`on_after_create(self, model, instance)`**
+- **`on_after_update(self, model, instance)`**
+- **`on_before_delete(self, model, instance)`**
+- **`on_after_delete(self, model, instance)`**
+- **`on_before_get(self, model, id)`**
+- **`on_after_get(self, model, instance)`**
+
+## Example: Timestamp Plugin
+
+Here is a simple plugin that automatically sets `created_at` and `updated_at` timestamps.
+
+```python
+from datetime import datetime, timezone
+from typing import Any
+from fluxcrud.plugins import BasePlugin
+
+class TimestampPlugin(BasePlugin):
+    async def on_before_create(self, model: type[Any], data: dict[str, Any]) -> dict[str, Any]:
+        now = datetime.now(timezone.utc)
+        data["created_at"] = now
+        data["updated_at"] = now
+        return data
+
+    async def on_before_update(self, model: type[Any], db_obj: Any, data: dict[str, Any]) -> dict[str, Any]:
+        data["updated_at"] = datetime.now(timezone.utc)
+        return data
+```

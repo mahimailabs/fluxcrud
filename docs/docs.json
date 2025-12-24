@@ -31,6 +31,9 @@
           {
             "group": "Advanced",
             "pages": [
+              "advanced/unit-of-work",
+              "advanced/plugins",
+              "advanced/streaming",
               "advanced/concurrency",
               "advanced/dataloader",
               "advanced/optimization",
