@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from enum import Enum
 from typing import Any, Protocol, runtime_checkable
 
@@ -57,6 +58,10 @@ class Plugin(Protocol):
         """Modify the SQLAlchemy SELECT statement."""
         ...
 
+    async def on_after_query(self, results: Sequence[Any]) -> Sequence[Any]:
+        """Modify the results of a query."""
+        ...
+
 
 class PluginManager:
     """Manages plugin registration and execution."""
@@ -94,6 +99,10 @@ class PluginManager:
 
                 elif hook == LifecycleHook.BEFORE_QUERY:
                     # method(query) -> query
+                    result = await method(result)
+
+                elif hook == LifecycleHook.AFTER_QUERY:
+                    # method(results) -> results
                     result = await method(result)
 
                 else:
