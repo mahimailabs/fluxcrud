@@ -56,15 +56,13 @@ class ChildRepo(Repository[Child, ChildSchema]):
 @pytest_asyncio.fixture
 async def streaming_tables(db_engine):
     """Create and drop tables for this test module."""
-    from fluxcrud.database import db
-
-    async with db.engine.begin() as conn:
+    async with db_engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
 
     yield
 
-    async with db.engine.begin() as conn:
+    async with db_engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
 
 
