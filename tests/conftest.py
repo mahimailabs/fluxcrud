@@ -22,7 +22,7 @@ async def db_engine() -> AsyncGenerator[None, None]:
         }
 
     db.init(database_url, **init_kwargs)
-    yield
+    yield db.engine
     await db.close()
 
 
