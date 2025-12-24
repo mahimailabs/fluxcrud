@@ -166,8 +166,19 @@ class PluginManager:
                     # method(results) -> results
                     result = await method(result)
 
-                else:
+                elif hook in (
+                    LifecycleHook.AFTER_CREATE,
+                    LifecycleHook.AFTER_UPDATE,
+                    LifecycleHook.BEFORE_DELETE,
+                    LifecycleHook.AFTER_DELETE,
+                    LifecycleHook.BEFORE_GET,
+                    LifecycleHook.AFTER_GET,
+                ):
                     # Side-effect hooks (return None)
                     await method(*args, **kwargs)
+
+                else:
+                    # Should be unreachable if all hooks are handled
+                    pass
 
         return result
