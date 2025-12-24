@@ -75,9 +75,14 @@ class PluginManager:
     """Manages plugin registration and execution."""
 
     def __init__(self, plugins: list[Plugin] | None = None):
-        self.plugins = plugins or []
+        self.plugins = []
+        if plugins:
+            for plugin in plugins:
+                self.add_plugin(plugin)
 
-    def add_plugin(self, plugin: Plugin) -> None:
+    def add_plugin(self, plugin: Any) -> None:
+        if not isinstance(plugin, Plugin):
+            raise TypeError(f"Object {plugin} does not implement the Plugin protocol")
         self.plugins.append(plugin)
 
     async def execute_hook(self, hook: LifecycleHook, *args: Any, **kwargs: Any) -> Any:
