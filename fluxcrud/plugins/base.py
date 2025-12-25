@@ -350,10 +350,18 @@ class PluginManager:
                 elif hook == LifecycleHook.BEFORE_QUERY:
                     # method(query) -> query
                     result = await method(result)
+                    if result is None:
+                        raise ValueError(
+                            f"Plugin {plugin.name} returned None from {method_name}"
+                        )
 
                 elif hook == LifecycleHook.AFTER_QUERY:
                     # method(results) -> results
                     result = await method(result)
+                    if result is None:
+                        raise ValueError(
+                            f"Plugin {plugin.name} returned None from {method_name}"
+                        )
 
                 elif hook in (
                     LifecycleHook.AFTER_CREATE,
