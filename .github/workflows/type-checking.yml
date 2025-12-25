@@ -1,21 +1,32 @@
 name: Type Checking
 
 on:
+
   push:
-    paths-ignore:
-      - "**.md"
-      - "docs/**"
     branches:
       - main
   pull_request:
-    paths-ignore:
-      - "**.md"
-      - "docs/**"
     branches:
       - main
 
+
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      src: ${{ steps.filter.outputs.src }}
+    steps:
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            src:
+              - '!**.md'
+              - '!docs/**'
+
   type-check:
+    needs: changes
+    if: ${{ needs.changes.outputs.src == 'true' }}
     runs-on: ubuntu-latest
 
     steps:
