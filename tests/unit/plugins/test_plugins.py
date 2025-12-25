@@ -167,3 +167,25 @@ async def test_plugin_create_many(session, managed_plugin_tables):
         assert item.created_at is not None
         assert item.updated_at is not None
         assert item.created_at == item.updated_at
+
+
+class BadPlugin(BasePlugin):
+    name = "bad_plugin"
+
+    async def on_before_query(self, query):
+        return None
+
+    async def on_after_query(self, results):
+        return None
+
+
+@pytest.mark.asyncio
+async def test_plugin_none_check(session, managed_plugin_tables):
+    """
+    Verifies that PluginManager raises ValueError if a plugin returns None
+    for hooks that require a return value (BEFORE_QUERY, AFTER_QUERY).
+    """
+    repo = MockPluginRepo(session=session, model=PluginItem, plugins=[BadPlugin()])
+
+    with pytest.raises(ValueError, match="returned None"):
+        await repo.get_multi()
