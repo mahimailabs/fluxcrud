@@ -5,10 +5,16 @@ on:
     paths:
       - "fluxcrud/**"
       - "tests/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".github/workflows/**"
   pull_request:
     paths:
       - "fluxcrud/**"
       - "tests/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".github/workflows/**"
 
 jobs:
   type-check:
