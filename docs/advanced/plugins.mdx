@@ -48,7 +48,7 @@ repo = UserRepository(
 ## Lifecycle Hooks
 
 ### Data Transformation Hooks
-These hooks allow you to modify data before it reaches the database or returned to the user.
+These hooks allow you to modify data before it reaches the database or is returned to the user.
 
 - **`on_before_create(self, model, data) -> dict`**: Modify creation data.
 - **`on_before_update(self, model, db_obj, data) -> dict`**: Modify update data.
