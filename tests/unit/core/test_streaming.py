@@ -57,10 +57,10 @@ class ChildRepo(Repository[Child, ChildSchema]):
 async def streaming_tables(db_engine):
     """
     Create the ORM tables before tests run and drop them after the test module completes.
-    
+
     Parameters:
         db_engine: SQLAlchemy AsyncEngine connected to the test database; used to create and drop metadata tables.
-    
+
     Notes:
         This fixture yields control to the caller after creating tables so tests run against the prepared schema, and it cleans up by dropping the tables afterwards.
     """

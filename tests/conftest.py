@@ -13,7 +13,7 @@ from fluxcrud.database import db
 async def db_engine() -> AsyncGenerator[AsyncEngine, None]:
     """
     Provide an initialized AsyncEngine for tests and close it when the fixture is torn down.
-    
+
     Returns:
         AsyncEngine: The initialized asynchronous SQLAlchemy engine yielded to the test.
     """

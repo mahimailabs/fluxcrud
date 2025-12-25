@@ -19,7 +19,7 @@ class UnitOfWork:
     def __init__(self) -> None:
         """
         Initialize a UnitOfWork instance.
-        
+
         Initializes:
         - session: the AsyncSession bound to this unit of work (None until the context is entered).
         - repositories: a cache mapping (model type, schema type) tuples to Repository instances created for the current session.
@@ -30,12 +30,12 @@ class UnitOfWork:
     async def __aenter__(self) -> "UnitOfWork":
         """
         Enter the unit-of-work context by acquiring a new database session and beginning a transaction.
-        
+
         Ensures the global database session factory is initialized, creates a new AsyncSession from it, begins a transaction on that session, and returns the UnitOfWork instance bound to the active transactional session.
-        
+
         Returns:
             UnitOfWork: The context manager instance with an active transactional session.
-        
+
         Raises:
             RuntimeError: If the global database session factory has not been initialized.
         """
@@ -51,9 +51,9 @@ class UnitOfWork:
     async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
         """
         Finalize the transaction and close the session when exiting the UnitOfWork context.
-        
+
         If there is no active session, no action is taken. If an exception occurred during the managed block (exc_type is not None), the transaction is rolled back; otherwise the transaction is committed. The session is always closed afterwards.
-        
+
         Parameters:
             exc_type: The exception type supplied by the context manager, or None.
             exc_val: The exception instance supplied by the context manager, or None.
@@ -75,16 +75,16 @@ class UnitOfWork:
     ) -> Repository[ModelT, SchemaT]:
         """
         Get a Repository for the given model and schema bound to the UnitOfWork's active transaction session.
-        
+
         Parameters:
-        	model (type[ModelT]): ORM model class for the repository.
-        	schema (type[SchemaT]): Schema type used by the repository.
-        
+                model (type[ModelT]): ORM model class for the repository.
+                schema (type[SchemaT]): Schema type used by the repository.
+
         Returns:
-        	Repository[ModelT, SchemaT]: Repository instance bound to the current session; instances are cached per (model, schema) key.
-        
+                Repository[ModelT, SchemaT]: Repository instance bound to the current session; instances are cached per (model, schema) key.
+
         Raises:
-        	RuntimeError: If the UnitOfWork context is not active (no session).
+                RuntimeError: If the UnitOfWork context is not active (no session).
         """
         if not self.session:
             raise RuntimeError(
