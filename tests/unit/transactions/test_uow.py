@@ -26,7 +26,7 @@ class UoWSchema(BaseModel):
 async def managed_uow_tables(db_engine):
     """
     Ensure test database tables for this module are created before tests run and dropped after tests complete.
-    
+
     Parameters:
         db_engine: Async SQLAlchemy Engine used to execute DDL operations for creating and dropping the module's tables.
     """
@@ -63,7 +63,7 @@ async def test_uow_commit(db_engine, managed_uow_tables):
 async def test_uow_rollback(db_engine, managed_uow_tables):
     """
     Verifies that UnitOfWork rolls back changes when an exception is raised during a transaction.
-    
+
     Creates an item inside a UnitOfWork, raises a RuntimeError to force rollback, then opens a new UnitOfWork to assert the item was not persisted.
     """
     uow = UnitOfWork()
