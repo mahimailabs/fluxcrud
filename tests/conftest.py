@@ -4,7 +4,7 @@ from typing import Any
 
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
-from sqlalchemy.pool import StaticPool
+from sqlalchemy.pool import NullPool, StaticPool
 
 from fluxcrud.database import db
 
@@ -25,6 +25,8 @@ async def db_engine() -> AsyncGenerator[AsyncEngine, None]:
             "connect_args": {"check_same_thread": False},
             "poolclass": StaticPool,
         }
+    else:
+        init_kwargs = {"poolclass": NullPool}
 
     db.init(database_url, **init_kwargs)
     assert db.engine is not None

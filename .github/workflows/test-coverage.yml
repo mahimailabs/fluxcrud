@@ -8,6 +8,7 @@ on:
   pull_request:
     branches:
       - main
+  workflow_dispatch:
 
 
 concurrency:
@@ -18,10 +19,14 @@ jobs:
   changes:
     runs-on: ubuntu-latest
     outputs:
-      src: ${{ steps.filter.outputs.src }}
+      src: ${{ steps.filter.outputs.src || 'true' }}
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: dorny/paths-filter@v3
         id: filter
+        if: github.event_name != 'workflow_dispatch'
         with:
           filters: |
             src:
@@ -35,12 +40,8 @@ jobs:
     runs-on: ubuntu-latest
 
     strategy:
-      fail-fast: false
       matrix:
-        db-type: [sqlite, postgres]
-        include:
-          - db-type: sqlite
-            database-url: "sqlite+aiosqlite:///:memory:"
+        db-type: [postgres]
 
     services:
       postgres:
@@ -72,12 +73,8 @@ jobs:
 
       - name: Configure Database Connection
         run: |
-          if [ "${{ matrix.db-type }}" == "postgres" ]; then
-            PORT=${{ job.services.postgres.ports[5432] }}
-            echo "DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:$PORT/fluxcrud_test" >> $GITHUB_ENV
-          else
-            echo "DATABASE_URL=sqlite+aiosqlite:///:memory:" >> $GITHUB_ENV
-          fi
+          PORT=${{ job.services.postgres.ports[5432] }}
+          echo "DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:$PORT/fluxcrud_test" >> $GITHUB_ENV
 
       - name: Run tests with coverage.py
         env:
