@@ -10,6 +10,9 @@ on:
       - main
 
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   changes:
@@ -22,6 +25,7 @@ jobs:
         with:
           filters: |
             src:
+              - '**'
               - '!**.md'
               - '!docs/**'
 
