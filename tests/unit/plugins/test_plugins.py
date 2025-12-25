@@ -145,7 +145,6 @@ async def test_plugin_query_hooks(session, managed_plugin_tables):
     results = await repo.get_multi()
 
     assert len(results) == 2
-    assert len(results) == 2
     assert results[0].name.endswith("(Processed)")
     assert results[1].name.endswith("(Processed)")
 
