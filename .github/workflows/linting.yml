@@ -2,8 +2,17 @@ name: Linting and Formatting
 
 on:
   push:
-
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+    branches:
+      - main
   pull_request:
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+    branches:
+      - main
 
 
 jobs:
