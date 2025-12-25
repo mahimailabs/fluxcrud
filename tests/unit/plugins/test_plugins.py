@@ -92,15 +92,13 @@ async def managed_plugin_tables(db_engine):
 
     Creates all tables mapped on `Base` before the module's tests execute and ensures they are removed when the module finishes.
     """
-    from fluxcrud.database import db
-
-    async with db.engine.begin() as conn:
+    async with db_engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
 
     yield
 
-    async with db.engine.begin() as conn:
+    async with db_engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
 
 
