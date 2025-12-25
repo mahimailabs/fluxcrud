@@ -1,3 +1,5 @@
+from unittest.mock import AsyncMock, patch
+
 import pytest
 import pytest_asyncio
 from pydantic import BaseModel
@@ -82,3 +84,25 @@ async def test_uow_rollback(db_engine, managed_uow_tables):
         repo = verification_uow.repository(UoWItem, UoWSchema)
         item3 = await repo.get("3")
         assert item3 is None
+
+
+@pytest.mark.asyncio
+async def test_uow_commit_failure(db_engine):
+    """
+    Verifies that if commit fails, rollback is triggered and the exception is re-raised.
+    """
+    uow = UnitOfWork()
+
+    mock_session = AsyncMock()
+    mock_session.begin = AsyncMock()
+    mock_session.commit = AsyncMock(side_effect=RuntimeError("Commit failed"))
+    mock_session.rollback = AsyncMock()
+    mock_session.close = AsyncMock()
+
+    with patch("fluxcrud.database.db.session_factory", return_value=mock_session):
+        with pytest.raises(RuntimeError, match="Commit failed"):
+            async with uow:
+                pass
+
+        mock_session.rollback.assert_called_once()
+        mock_session.close.assert_called_once()

@@ -66,7 +66,11 @@ class UnitOfWork:
             if exc_type:
                 await self.session.rollback()
             else:
-                await self.session.commit()
+                try:
+                    await self.session.commit()
+                except Exception as commit_error:
+                    await self.session.rollback()
+                    raise commit_error
         finally:
             await self.session.close()
 
