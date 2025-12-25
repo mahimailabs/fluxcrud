@@ -36,6 +36,16 @@ class TimestampPlugin(BasePlugin):
     async def on_before_create(
         self, model: type[Any], data: dict[str, Any]
     ) -> dict[str, Any]:
+        """
+        Set `created_at` and `updated_at` to the current UTC time on the provided data before creation.
+        
+        Parameters:
+            model (type[Any]): The ORM model class that will be created.
+            data (dict[str, Any]): The attribute mapping for the new record; timestamps will be added to this mapping.
+        
+        Returns:
+            dict[str, Any]: The `data` mapping with `created_at` and `updated_at` set to the current UTC datetime.
+        """
         now = datetime.now(timezone.utc)
         data["created_at"] = now
         data["updated_at"] = now
@@ -44,10 +54,28 @@ class TimestampPlugin(BasePlugin):
     async def on_before_update(
         self, model: type[Any], db_obj: Any, data: dict[str, Any]
     ) -> dict[str, Any]:
+        """
+        Set `updated_at` in the update payload to the current UTC time.
+        
+        Parameters:
+            data (dict[str, Any]): Update payload that will be persisted; this dict is modified in-place.
+        
+        Returns:
+            dict[str, Any]: The same `data` dict with `updated_at` set to the current UTC time.
+        """
         data["updated_at"] = datetime.now(timezone.utc)
         return data
 
     async def on_after_query(self, results: Any) -> Any:
+        """
+        Append " (Processed)" to the `name` attribute of each item in the provided sequence.
+        
+        Parameters:
+            results (Any): An iterable or sequence of objects that have a writable `name` attribute; items are modified in place.
+        
+        Returns:
+            Any: The same `results` sequence with each item's `name` updated to include " (Processed)".
+        """
         for item in results:
             item.name = f"{item.name} (Processed)"
         return results
@@ -59,7 +87,11 @@ class MockPluginRepo(Repository[PluginItem, PluginSchema]):
 
 @pytest_asyncio.fixture
 async def managed_plugin_tables(db_engine):
-    """Create and drop tables for this test module."""
+    """
+    Set up the database schema for the test module by creating all ORM tables before tests run and dropping them after the module completes.
+    
+    Creates all tables mapped on `Base` before the module's tests execute and ensures they are removed when the module finishes.
+    """
     from fluxcrud.database import db
 
     async with db.engine.begin() as conn:
@@ -74,6 +106,11 @@ async def managed_plugin_tables(db_engine):
 
 @pytest.mark.asyncio
 async def test_plugin_lifecycle(session, managed_plugin_tables):
+    """
+    Verifies that TimestampPlugin sets timestamps on creation and updates the updated_at timestamp on update.
+    
+    Creates a PluginSchema, persists it through MockPluginRepo and asserts that `created_at` and `updated_at` are set and equal after creation. Then updates the item and asserts the `name` is changed and `updated_at` is later than `created_at`.
+    """
     repo = MockPluginRepo(
         session=session, model=PluginItem, plugins=[TimestampPlugin()]
     )
