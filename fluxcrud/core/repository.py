@@ -425,6 +425,8 @@ class Repository(BaseCRUD[ModelT, SchemaT], Generic[ModelT, SchemaT]):
 
         if self.auto_commit:
             await self.session.commit()
+            for obj in instances:
+                await self.session.refresh(obj)
         else:
             await self.session.flush()
 
